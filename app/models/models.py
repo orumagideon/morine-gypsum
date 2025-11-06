@@ -1,4 +1,3 @@
-# app/models/models.py
 from typing import Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
@@ -34,6 +33,50 @@ class Product(SQLModel, table=True):
 
 
 # ==========================
+# CUSTOMER MODEL
+# ==========================
+class Customer(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    email: Optional[str] = Field(default=None, unique=True)
+    phone: Optional[str] = Field(default=None, unique=True)
+    address: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    orders: List["Order"] = Relationship(back_populates="customer")
+    invoices: List["Invoice"] = Relationship(back_populates="customer")
+
+
+# ==========================
+# SUPPLIER MODEL
+# ==========================
+class Supplier(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+
+    products: List["ProductSupply"] = Relationship(back_populates="supplier")
+
+
+# ==========================
+# PRODUCT SUPPLY MODEL (Supplier-Product Link)
+# ==========================
+class ProductSupply(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    supplier_id: Optional[int] = Field(default=None, foreign_key="supplier.id")
+    product_id: Optional[int] = Field(default=None, foreign_key="product.id")
+    supply_date: datetime = Field(default_factory=datetime.utcnow)
+    quantity_supplied: int
+    cost_price: float
+
+    supplier: Optional[Supplier] = Relationship(back_populates="products")
+    product: Optional[Product] = Relationship()
+
+
+# ==========================
 # ORDER & ORDER ITEM MODELS
 # ==========================
 class OrderItem(SQLModel, table=True):
@@ -49,6 +92,7 @@ class OrderItem(SQLModel, table=True):
 
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
     customer_name: str
     customer_phone: str
     delivery_address: str
@@ -56,7 +100,26 @@ class Order(SQLModel, table=True):
     total_price: float
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    customer: Optional[Customer] = Relationship(back_populates="orders")
     items: List[OrderItem] = Relationship(back_populates="order")
+    invoices: List["Invoice"] = Relationship(back_populates="order")
+
+
+# ==========================
+# INVOICE MODEL
+# ==========================
+class Invoice(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order_id: Optional[int] = Field(default=None, foreign_key="order.id")
+    customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
+    invoice_date: datetime = Field(default_factory=datetime.utcnow)
+    total_amount: float
+    payment_status: str = Field(default="Unpaid")  # Unpaid, Paid, Pending
+    payment_method: Optional[str] = None
+    remarks: Optional[str] = None
+
+    order: Optional[Order] = Relationship(back_populates="invoices")
+    customer: Optional[Customer] = Relationship(back_populates="invoices")
 
 
 # ==========================

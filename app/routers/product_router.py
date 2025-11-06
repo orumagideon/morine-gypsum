@@ -23,6 +23,7 @@ def create_product(
     name: str = Form(...),
     description: str = Form(None),
     price: float = Form(...),
+    stock_quantity: int = Form(...),
     category_id: int = Form(...),
     image: UploadFile = File(None),
     session: Session = Depends(get_session)
@@ -46,6 +47,7 @@ def create_product(
         name=name,
         description=description,
         price=price,
+        stock_quantity=stock_quantity,
         category_id=category_id,
         image_url=image_url
     )
@@ -54,7 +56,6 @@ def create_product(
     session.commit()
     session.refresh(new_product)
     return new_product
-
 
 # =====================================
 # READ ALL PRODUCTS
