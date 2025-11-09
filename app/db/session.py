@@ -5,10 +5,11 @@ import os
 
 load_dotenv()  # Load .env variables
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not set in your .env file")
+# PostgreSQL database configuration
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://oruma:oruma@localhost:5432/gypsum_data"
+)
 
 engine = create_engine(DATABASE_URL, echo=True)
 

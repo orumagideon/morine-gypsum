@@ -1,0 +1,19 @@
+{
+  "admin": {
+    "email": "orumagideon535@gmail.com",
+    "password": "@Kisumu254.",
+    "password_hash": "$2b$12$kiO/iqASRrV8xGdeNL3Ca.XyqBSTV3ZEEmEBsug/k0sZU90b2RRyC"
+  },
+  "payment": {
+    "mpesa": {
+      "businessNumber": "0700183022",
+      "type": "pochi_la_biashara",
+      "accountNumber": ""
+    }
+  },
+  "notifications": {
+    "adminEmail": "orumagideon535@gmail.com",
+    "sendOrderNotifications": true,
+    "sendPaymentNotifications": true
+  }
+}

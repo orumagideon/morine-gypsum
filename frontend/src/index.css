@@ -1,0 +1,157 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  /* layered background: subtle gradient + geometric SVG pattern */
+  background-color: #0f1724;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+    radial-gradient(circle at 10% 10%, rgba(255,255,255,0.03), transparent 15%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><defs><pattern id='p' width='24' height='24' patternUnits='userSpaceOnUse'><rect width='24' height='24' fill='%2310212b'/><path d='M0 12 L12 0 L24 12 L12 24 Z' fill='%2326393a' opacity='0.12'/></pattern></defs><rect width='100%' height='100%' fill='url(%23p)' opacity='0.65'/></svg>");
+  background-size: cover;
+  background-attachment: fixed;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.container:not(.navbar .container):not(.navbar .container-fluid),
+.container-fluid:not(.navbar .container-fluid) {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.navbar {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(8px) saturate(120%);
+  box-shadow: 0 6px 18px rgba(2,6,23,0.35);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.navbar .container,
+.navbar .container-fluid {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0.5rem 1rem;
+  margin: 0;
+}
+/* Checkout Progress Steps */
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  padding: 0 10px;
+}
+
+.step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 60%;
+  width: 80%;
+  height: 2px;
+  background-color: #dee2e6;
+  z-index: 0;
+}
+
+.step.active:not(:last-child)::after {
+  background-color: #0d6efd;
+}
+
+.step .badge {
+  z-index: 1;
+  background-color: #dee2e6;
+  color: #6c757d;
+}
+
+.step.active .badge {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .step {
+    font-size: 0.8rem;
+  }
+  
+  .step:not(:last-child)::after {
+    width: 70%;
+  }
+}
+
+/* Header styles */
+.site-header .logo {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+.site-header .nav-link {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+/* Footer styles */
+.site-footer {
+  border-top: 1px solid rgba(255,255,255,0.03);
+  background: linear-gradient(180deg, rgba(12,17,23,0.5), rgba(6,8,12,0.6));
+  color: rgba(255,255,255,0.8);
+}
+.site-footer a { color: rgba(255,255,255,0.85); }
+
+/* Content area sits on a translucent card */
+.content-wrap {
+  background-color: rgba(255,255,255,0.96);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(2,6,23,0.35);
+  padding: 28px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+/* Make content area grow so footer stays at bottom on short pages */
+.content-wrap { flex: 1 0 auto; }
+
+/* Ensure footer sits at bottom */
+.site-footer { margin-top: auto; flex-shrink: 0; width: 100%; }
+
+/* Make the site responsive and polished */
+@media (max-width: 768px) {
+  .content-wrap { padding: 16px; margin-top: 16px; margin-bottom: 16px; }
+  .site-header .nav-link { font-size: 0.95rem; }
+}

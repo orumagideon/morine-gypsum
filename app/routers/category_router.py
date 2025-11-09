@@ -21,7 +21,11 @@ def create_category(category: CategoryCreate, session: Session = Depends(get_ses
             detail="Category already exists"
         )
 
-    new_category = Category.from_orm(category)
+    new_category = Category(
+        name=category.name,
+        description=category.description,
+        parent_id=category.parent_id
+    )
     session.add(new_category)
     session.commit()
     session.refresh(new_category)
@@ -67,7 +71,28 @@ def update_category(
             detail=f"Category with ID {category_id} not found"
         )
 
+    # Validate parent_id if provided
+    if category_update.parent_id is not None:
+        if category_update.parent_id == category_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Category cannot be its own parent"
+            )
+        # Handle None or empty string as no parent
+        if category_update.parent_id == 0 or category_update.parent_id == "":
+            category_update.parent_id = None
+        elif category_update.parent_id:
+            parent = session.get(Category, category_update.parent_id)
+            if not parent:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Parent category not found"
+                )
+    
     category_data = category_update.dict(exclude_unset=True)
+    # Convert empty string to None for parent_id
+    if "parent_id" in category_data and category_data["parent_id"] == "":
+        category_data["parent_id"] = None
     for key, value in category_data.items():
         setattr(category, key, value)
 

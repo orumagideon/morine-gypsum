@@ -6,35 +6,50 @@ from fastapi.responses import FileResponse
 from sqlmodel import select, Session
 from app.db.session import get_session
 from app.models.models import Order, OrderItem, Product, Invoice
-from app.schemas.schemas import OrderCreate, OrderRead, OrderUpdate
+from app.schemas.schemas import OrderCreate, OrderRead, OrderUpdate, PaymentVerification
 from app.utils.pdf_generator import generate_invoice_pdf
+from app.services.email_service import (
+    send_order_notification,
+    send_payment_confirmation,
+    send_invoice_email
+)
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 # ===============================
-# CREATE ORDER (with invoice generation)
+# CREATE ORDER (with email notifications)
 # ===============================
 @router.post("/", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
 def create_order(order_data: OrderCreate, session: Session = Depends(get_session)):
-    """Create an order, generate invoice, and return details."""
+    """Create an order, generate invoice, send notifications, and return details."""
     if not order_data.items:
         raise HTTPException(status_code=400, detail="Order must have at least one product")
+
+    # Calculate totals
+    subtotal = 0.0
+    shipping_cost = 500.0
+    total_amount = order_data.total_amount or 0.0
 
     # Initialize order
     order = Order(
         customer_name=order_data.customer_name,
+        customer_email=order_data.customer_email,
         customer_phone=order_data.customer_phone,
         delivery_address=order_data.delivery_address,
-        status="Pending",
+        payment_method=order_data.payment_method or "cash_on_delivery",
+        status="pending",
+        payment_status="pending",
+        notes=order_data.notes,
         created_at=datetime.utcnow(),
-        total_price=0.0
+        total_price=0.0,
+        shipping_cost=shipping_cost,
+        total_amount=total_amount
     )
     session.add(order)
     session.commit()
     session.refresh(order)
 
-    total_order_price = 0.0
     order_items = []
 
     # Process each product
@@ -46,8 +61,9 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
         if product.stock_quantity < item.quantity:
             raise HTTPException(status_code=400, detail=f"Insufficient stock for {product.name}")
 
-        total_price = product.price * item.quantity
-        total_order_price += total_price
+        item_price = item.price if hasattr(item, 'price') and item.price else product.price
+        total_price = item_price * item.quantity
+        subtotal += total_price
 
         # Update product stock
         product.stock_quantity -= item.quantity
@@ -57,13 +73,15 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
             order_id=order.id,
             product_id=item.product_id,
             quantity=item.quantity,
-            price=product.price
+            price=item_price
         )
         session.add(order_item)
         order_items.append(order_item)
 
-    # Update total order price
-    order.total_price = total_order_price
+    # Update order totals
+    order.total_price = subtotal
+    if not order_data.total_amount:
+        order.total_amount = subtotal + shipping_cost
     session.add(order)
     session.commit()
     session.refresh(order)
@@ -73,8 +91,8 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
     # ===============================
     new_invoice = Invoice(
         order_id=order.id,
-        total_amount=total_order_price,
-        payment_method="Cash",
+        total_amount=order.total_amount,
+        payment_method=order.payment_method,
         payment_status="Pending",
         invoice_date=datetime.utcnow()
     )
@@ -83,7 +101,7 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
     session.refresh(new_invoice)
 
     # ===============================
-    # Generate PDF Invoice
+    # Generate PDF Invoice/Receipt
     # ===============================
     order_items_data = [
         {
@@ -100,7 +118,7 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
         "customer_phone": order.customer_phone,
         "delivery_address": order.delivery_address,
         "order_items": order_items_data,
-        "total_price": total_order_price,
+        "total_price": order.total_amount,
         "invoice_date": new_invoice.invoice_date,
     }
 
@@ -109,7 +127,135 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
     session.add(new_invoice)
     session.commit()
 
-    return order
+    # ===============================
+    # Send Email Notifications
+    # ===============================
+    order_dict = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_email": order.customer_email,
+        "customer_phone": order.customer_phone,
+        "delivery_address": order.delivery_address,
+        "total_amount": order.total_amount,
+        "total_price": order.total_price,
+        "payment_method": order.payment_method,
+        "status": order.status
+    }
+
+    # Send to admin
+    if order_data.send_email_to_admin:
+        send_order_notification(order_dict)
+
+    # Send invoice to customer if email provided
+    if order_data.send_email_to_customer and order.customer_email:
+        send_invoice_email(order_dict, pdf_path)
+
+    # Build a plain dict for the response to avoid setting relationship attributes
+    order_items = session.exec(
+        select(OrderItem).where(OrderItem.order_id == order.id)
+    ).all()
+
+    items_response = []
+    for item in order_items:
+        product = session.get(Product, item.product_id)
+        items_response.append(
+            {
+                "id": item.id,
+                "product_id": item.product_id,
+                "product": {"id": product.id, "name": product.name, "price": product.price} if product else None,
+                "quantity": item.quantity,
+                "price": item.price,
+            }
+        )
+
+    order_response = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_phone": order.customer_phone,
+        "customer_email": order.customer_email,
+        "delivery_address": order.delivery_address,
+        "status": order.status,
+        "payment_method": order.payment_method,
+        "payment_status": order.payment_status,
+        "total_amount": order.total_amount,
+        "total_price": order.total_price,
+        "shipping_cost": order.shipping_cost,
+        "created_at": order.created_at,
+        "items": items_response,
+    }
+
+    return order_response
+
+
+# ===============================
+# VERIFY MPESA PAYMENT
+# ===============================
+@router.post("/{order_id}/verify-payment")
+def verify_payment(
+    order_id: int,
+    verification: PaymentVerification,
+    session: Session = Depends(get_session)
+):
+    """Verify MPESA payment with confirmation code."""
+    order = session.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.payment_method != "mpesa":
+        raise HTTPException(status_code=400, detail="Order is not using MPESA payment")
+
+    if order.payment_verified:
+        raise HTTPException(status_code=400, detail="Payment already verified")
+
+    # In a real implementation, you would verify the MPESA code with Safaricom API
+    # For now, we'll do basic validation (code should be alphanumeric, 6-10 chars)
+    mpesa_code = verification.mpesa_code.strip().upper()
+    if len(mpesa_code) < 6 or len(mpesa_code) > 10:
+        raise HTTPException(status_code=400, detail="Invalid MPESA confirmation code format")
+
+    # Verify phone number matches
+    if order.customer_phone != verification.phone_number:
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number does not match order"
+        )
+
+    # Update order payment status
+    order.mpesa_code = mpesa_code
+    order.payment_verified = True
+    order.payment_status = "verified"
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+
+    # Update invoice
+    invoice = session.exec(select(Invoice).where(Invoice.order_id == order_id)).first()
+    if invoice:
+        invoice.payment_status = "Paid"
+        invoice.payment_method = "MPESA"
+        session.add(invoice)
+        session.commit()
+
+    # Send payment confirmation emails
+    order_dict = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_email": order.customer_email,
+        "customer_phone": order.customer_phone,
+        "total_amount": order.total_amount,
+        "total_price": order.total_price,
+        "payment_method": order.payment_method,
+        "mpesa_code": mpesa_code,
+        "status": order.status
+    }
+    send_payment_confirmation(order_dict)
+
+    return {
+        "success": True,
+        "message": "Payment verified successfully",
+        "order_id": order.id,
+        "payment_status": "verified"
+    }
 
 
 # ===============================
@@ -117,8 +263,47 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
 # ===============================
 @router.get("/", response_model=list[OrderRead])
 def get_orders(session: Session = Depends(get_session)):
+    """Get all orders with their items."""
     orders = session.exec(select(Order)).all()
-    return orders
+    result = []
+    # Build plain serializable dicts for each order
+    for order in orders:
+        order_items = session.exec(
+            select(OrderItem).where(OrderItem.order_id == order.id)
+        ).all()
+
+        items_response = []
+        for item in order_items:
+            product = session.get(Product, item.product_id)
+            items_response.append(
+                {
+                    "id": item.id,
+                    "product_id": item.product_id,
+                    "product": {"id": product.id, "name": product.name, "price": product.price} if product else None,
+                    "quantity": item.quantity,
+                    "price": item.price,
+                }
+            )
+
+        result.append(
+            {
+                "id": order.id,
+                "customer_name": order.customer_name,
+                "customer_phone": order.customer_phone,
+                "customer_email": order.customer_email,
+                "delivery_address": order.delivery_address,
+                "status": order.status,
+                "payment_method": order.payment_method,
+                "payment_status": order.payment_status,
+                "total_amount": order.total_amount,
+                "total_price": order.total_price,
+                "shipping_cost": order.shipping_cost,
+                "created_at": order.created_at,
+                "items": items_response,
+            }
+        )
+
+    return result
 
 
 # ===============================
@@ -126,28 +311,106 @@ def get_orders(session: Session = Depends(get_session)):
 # ===============================
 @router.get("/{order_id}", response_model=OrderRead)
 def get_order(order_id: int, session: Session = Depends(get_session)):
+    """Get a single order with its items."""
     order = session.get(Order, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return order
+    
+    # Load order items with product details
+    order_items = session.exec(
+        select(OrderItem).where(OrderItem.order_id == order_id)
+    ).all()
+    
+    # Build serializable response dict
+    items_response = []
+    for item in order_items:
+        product = session.get(Product, item.product_id)
+        items_response.append(
+            {
+                "id": item.id,
+                "product_id": item.product_id,
+                "product": {"id": product.id, "name": product.name, "price": product.price} if product else None,
+                "quantity": item.quantity,
+                "price": item.price,
+            }
+        )
+
+    order_response = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_phone": order.customer_phone,
+        "customer_email": order.customer_email,
+        "delivery_address": order.delivery_address,
+        "status": order.status,
+        "payment_method": order.payment_method,
+        "payment_status": order.payment_status,
+        "total_amount": order.total_amount,
+        "total_price": order.total_price,
+        "shipping_cost": order.shipping_cost,
+        "created_at": order.created_at,
+        "items": items_response,
+    }
+
+    return order_response
 
 
 # ===============================
 # UPDATE ORDER STATUS
 # ===============================
-@router.put("/{order_id}", response_model=OrderRead)
-def update_order(order_id: int, order_update: OrderUpdate, session: Session = Depends(get_session)):
+@router.patch("/{order_id}", response_model=OrderRead)
+def update_order(
+    order_id: int,
+    order_update: OrderUpdate,
+    session: Session = Depends(get_session)
+):
+    """Update an order (status, payment status, etc.)."""
     order = session.get(Order, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    if order_update.status:
-        order.status = order_update.status
+    update_data = order_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(order, key, value)
 
     session.add(order)
     session.commit()
     session.refresh(order)
-    return order
+    
+    # Build response dict including items
+    order_items = session.exec(
+        select(OrderItem).where(OrderItem.order_id == order_id)
+    ).all()
+
+    items_response = []
+    for item in order_items:
+        product = session.get(Product, item.product_id)
+        items_response.append(
+            {
+                "id": item.id,
+                "product_id": item.product_id,
+                "product": {"id": product.id, "name": product.name, "price": product.price} if product else None,
+                "quantity": item.quantity,
+                "price": item.price,
+            }
+        )
+
+    order_response = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_phone": order.customer_phone,
+        "customer_email": order.customer_email,
+        "delivery_address": order.delivery_address,
+        "status": order.status,
+        "payment_method": order.payment_method,
+        "payment_status": order.payment_status,
+        "total_amount": order.total_amount,
+        "total_price": order.total_price,
+        "shipping_cost": order.shipping_cost,
+        "created_at": order.created_at,
+        "items": items_response,
+    }
+
+    return order_response
 
 
 # ===============================
@@ -155,6 +418,7 @@ def update_order(order_id: int, order_update: OrderUpdate, session: Session = De
 # ===============================
 @router.delete("/{order_id}", status_code=status.HTTP_200_OK)
 def delete_order(order_id: int, session: Session = Depends(get_session)):
+    """Delete an order and its associated items."""
     order = session.get(Order, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -169,21 +433,6 @@ def delete_order(order_id: int, session: Session = Depends(get_session)):
     return {"detail": f"Order ID {order_id} deleted successfully"}
 
 
-# ===============================
-# DOWNLOAD INVOICE PDF
-# ===============================
-@router.get("/invoice/{invoice_id}/download", response_class=FileResponse)
-def download_invoice(invoice_id: int):
-    """Download generated invoice as a PDF file."""
-    file_path = f"app/static/invoices/invoice_{invoice_id}.pdf"
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Invoice PDF not found")
-
-    return FileResponse(
-        file_path,
-        filename=f"invoice_{invoice_id}.pdf",
-        media_type="application/pdf"
-    )
 # ===============================
 # GENERATE OR DOWNLOAD INVOICE PDF FOR AN ORDER
 # ===============================
@@ -220,11 +469,10 @@ def get_order_invoice(order_id: int, session: Session = Depends(get_session)):
             "customer_phone": order.customer_phone,
             "delivery_address": order.delivery_address,
             "order_items": order_items_data,
-            "total_price": order.total_price,
+            "total_price": order.total_amount or order.total_price,
             "invoice_date": invoice.invoice_date,
         }
 
-        from app.utils.pdf_generator import generate_invoice_pdf
         pdf_path = generate_invoice_pdf(invoice_data)
 
     # Return the file for download
@@ -233,3 +481,13 @@ def get_order_invoice(order_id: int, session: Session = Depends(get_session)):
         filename=f"invoice_{invoice.id}.pdf",
         media_type="application/pdf"
     )
+
+
+# ===============================
+# GENERATE RECEIPT PDF (for customers without email)
+# ===============================
+@router.get("/{order_id}/receipt", response_class=FileResponse)
+def get_order_receipt(order_id: int, session: Session = Depends(get_session)):
+    """Generate a receipt PDF for the given order (same as invoice but named receipt)."""
+    # Reuse invoice generation
+    return get_order_invoice(order_id, session)

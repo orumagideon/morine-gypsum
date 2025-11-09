@@ -10,9 +10,12 @@ class Category(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
+    parent_id: Optional[int] = Field(default=None, foreign_key="category.id")
 
     # Relationship: one category -> many products
     products: List["Product"] = Relationship(back_populates="category")
+    parent: Optional["Category"] = Relationship(back_populates="children", sa_relationship_kwargs={"remote_side": "Category.id"})
+    children: List["Category"] = Relationship(back_populates="parent")
 
 
 # ==========================
@@ -43,7 +46,11 @@ class Customer(SQLModel, table=True):
     address: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    orders: List["Order"] = Relationship(back_populates="customer")
+    # The database schema for orders in this project does not include a customer_id
+    # foreign key on the Order table (orders are stored with customer_name/email/phone).
+    # To avoid SQLAlchemy NoForeignKeysError we DO NOT define a relationship here
+    # that relies on a missing foreign key. Invoice still has a customer_id FK so
+    # we keep that relationship.
     invoices: List["Invoice"] = Relationship(back_populates="customer")
 
 
@@ -92,15 +99,24 @@ class OrderItem(SQLModel, table=True):
 
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
+    # customer_id removed - not in existing database schema
+    # customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
     customer_name: str
+    customer_email: Optional[str] = None
     customer_phone: str
     delivery_address: str
-    status: str = Field(default="Pending")  # Pending, Processing, Shipped, Delivered
-    total_price: float
+    status: str = Field(default="pending")  # pending, processing, shipped, completed, cancelled
+    payment_method: Optional[str] = None  # mpesa, cash_on_delivery, bank_transfer
+    payment_status: str = Field(default="pending")  # pending, verified, paid, failed
+    mpesa_code: Optional[str] = None  # MPESA confirmation code
+    payment_verified: bool = Field(default=False)
+    total_amount: Optional[float] = None  # Total including shipping
+    total_price: float  # Subtotal
+    shipping_cost: float = Field(default=500.0)
+    notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    customer: Optional[Customer] = Relationship(back_populates="orders")
+    # customer: Optional[Customer] = Relationship(back_populates="orders")  # Commented out since customer_id removed
     items: List[OrderItem] = Relationship(back_populates="order")
     invoices: List["Invoice"] = Relationship(back_populates="order")
 
@@ -128,4 +144,9 @@ class Invoice(SQLModel, table=True):
 class AdminUser(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True)
+    # New email field (nullable) to allow login by email while keeping `username`
+    # for backward compatibility. We add this in a non-destructive way so existing
+    # databases without the column continue to work; an idempotent ALTER is handled
+    # in `app/db/init_db.py`.
+    email: Optional[str] = Field(default=None, index=True, unique=True)
     password_hash: str

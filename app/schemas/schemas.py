@@ -9,6 +9,7 @@ from sqlmodel import SQLModel
 class CategoryBase(SQLModel):
     name: str
     description: Optional[str] = None
+    parent_id: Optional[int] = None
 
 
 class CategoryCreate(CategoryBase):
@@ -17,6 +18,7 @@ class CategoryCreate(CategoryBase):
 
 class CategoryRead(CategoryBase):
     id: int
+    parent_id: Optional[int] = None
 
     class Config:
         orm_mode = True
@@ -25,6 +27,7 @@ class CategoryRead(CategoryBase):
 class CategoryUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    parent_id: Optional[int] = None
 
 
 # ============================================
@@ -45,6 +48,7 @@ class ProductCreate(ProductBase):
 
 class ProductRead(ProductBase):
     id: int
+    category: Optional["CategoryRead"] = None
 
     class Config:
         orm_mode = True
@@ -155,6 +159,7 @@ class OrderItemCreate(OrderItemBase):
 
 class OrderItemRead(OrderItemBase):
     id: int
+    product: Optional[dict] = None  # Will be populated with product details
 
 
 # ============================================
@@ -167,19 +172,42 @@ class OrderBase(SQLModel):
 
 
 class OrderCreate(OrderBase):
+    customer_email: Optional[str] = None
+    payment_method: Optional[str] = None
+    total_amount: Optional[float] = None
+    notes: Optional[str] = None
+    send_email_to_customer: bool = True
+    send_email_to_admin: bool = True
     items: List[OrderItemCreate]
 
 
 class OrderRead(OrderBase):
     id: int
+    customer_email: Optional[str] = None
     status: str
+    payment_method: Optional[str] = None
+    payment_status: Optional[str] = None
+    total_amount: Optional[float] = None
     total_price: float
+    shipping_cost: Optional[float] = None
     created_at: datetime
     items: List[OrderItemRead]
 
     class Config:
         orm_mode = True
+        
+class OrderUpdate(SQLModel):
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_email: Optional[str] = None
+    delivery_address: Optional[str] = None
+    status: Optional[str] = None
+    payment_status: Optional[str] = None
 
+
+class PaymentVerification(SQLModel):
+    mpesa_code: str
+    phone_number: str
 
 # ============================================
 # INVOICE SCHEMAS

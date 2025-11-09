@@ -31,7 +31,7 @@ def generate_invoice_pdf(invoice_data: dict, output_dir: str = "app/static/invoi
     elements = []
 
     # Header section
-    title = Paragraph("<b>Farmwise Solutions</b>", styles["Title"])
+    title = Paragraph("<b>Morine Gypsum</b>", styles["Title"])
     subtitle = Paragraph(f"<b>Invoice ID:</b> #{invoice_data['invoice_id']}", styles["Heading2"])
     date_str = invoice_data["invoice_date"].strftime("%Y-%m-%d %H:%M")
     elements.extend([title, subtitle, Paragraph(f"Date: {date_str}", styles["Normal"]), Spacer(1, 12)])
@@ -75,7 +75,7 @@ def generate_invoice_pdf(invoice_data: dict, output_dir: str = "app/static/invoi
     # Footer / Remarks
     elements.append(Paragraph("<b>Remarks:</b> Payment due upon delivery.", styles["Normal"]))
     elements.append(Spacer(1, 10))
-    elements.append(Paragraph("<i>Thank you for choosing Farmwise Solutions!</i>", styles["Italic"]))
+    elements.append(Paragraph("<i>Thank you for choosing Morine Gypsum!</i>", styles["Italic"]))
 
     # Build PDF
     doc.build(elements)
