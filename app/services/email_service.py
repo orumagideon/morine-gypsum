@@ -157,3 +157,44 @@ def send_invoice_email(order_data: dict, invoice_path: str) -> bool:
     
     return send_email(customer_email, subject, body, invoice_path)
 
+
+def send_shipment_notification(order_data: dict) -> bool:
+    """Send shipment notification to customer and admin."""
+    settings = get_settings()
+    admin_email = settings.get("notifications", {}).get("adminEmail", "orumagideon535@gmail.com")
+
+    # Notify customer
+    customer_email = order_data.get("customer_email")
+    if customer_email:
+        subject = f"Your Order #{order_data['id']} has been shipped"
+        body = f"""
+        <html>
+        <body>
+            <h2>Your Order has been Shipped</h2>
+            <p>Dear {order_data.get('customer_name')},</p>
+            <p>Your order <strong>#{order_data['id']}</strong> has been shipped.</p>
+            <p><strong>Tracking Number:</strong> {order_data.get('tracking_number', 'N/A')}</p>
+            <p><strong>Shipping Provider:</strong> {order_data.get('shipping_provider', 'N/A')}</p>
+            <p>Thank you for shopping with us.</p>
+        </body>
+        </html>
+        """
+        send_email(customer_email, subject, body)
+
+    # Notify admin
+    if settings.get("notifications", {}).get("sendOrderNotifications", True):
+        subject = f"Order #{order_data['id']} Shipped"
+        body = f"""
+        <html>
+        <body>
+            <h2>Order Shipped</h2>
+            <p>Order <strong>#{order_data['id']}</strong> has been marked as shipped.</p>
+            <p><strong>Customer:</strong> {order_data.get('customer_name')}</p>
+            <p><strong>Tracking:</strong> {order_data.get('tracking_number', 'N/A')}</p>
+        </body>
+        </html>
+        """
+        send_email(admin_email, subject, body)
+
+    return True
+

@@ -13,6 +13,9 @@ export default function MpesaVerification({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(300); // 5 minutes
+  const [pushRequested, setPushRequested] = useState(false);
+  const [requestId, setRequestId] = useState(null);
+  const [polling, setPolling] = useState(false);
   const businessNumber = getMpesaBusinessNumber();
 
   useEffect(() => {
@@ -61,6 +64,56 @@ export default function MpesaVerification({
     }
   };
 
+  const requestStkPush = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await api.post(`/orders/${orderId}/mpesa/push`, {
+        phone_number: phoneNumber,
+        amount,
+      });
+      if (res.data && res.data.request_id) {
+        setRequestId(res.data.request_id);
+        setPushRequested(true);
+        // start polling for status
+        setPolling(true);
+      } else {
+        setError("Failed to initiate STK Push. Please try manual payment.");
+      }
+    } catch (err) {
+      console.error("STK Push error:", err);
+      setError("Failed to initiate STK Push. Please try manual payment.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Poll for status when pushRequested/polling is true
+  useEffect(() => {
+    if (!polling || !pushRequested) return;
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/orders/${orderId}/mpesa/status`);
+        if (res.data && res.data.payment_verified) {
+          if (!cancelled) {
+            setPolling(false);
+            setPushRequested(false);
+            onVerified(res.data);
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [polling, pushRequested, orderId, onVerified]);
+
   return (
     <div className="card">
       <div className="card-body">
@@ -85,6 +138,28 @@ export default function MpesaVerification({
             <span className="text-danger ms-2">⚠️ Less than 1 minute left!</span>
           )}
         </div>
+
+        {!pushRequested ? (
+          <div className="mb-3">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={requestStkPush}
+              disabled={loading}
+            >
+              {loading ? "Requesting…" : "Request STK Push (One-tap)"}
+            </button>
+            <small className="form-text text-muted mt-2">
+              You can request an STK Push to your phone to pay without entering the MPESA code manually.
+            </small>
+          </div>
+        ) : (
+          <div className="alert alert-info mb-3">
+            <p className="mb-1"><strong>STK Push Requested</strong></p>
+            <p className="mb-1">Request ID: {requestId}</p>
+            <p className="mb-0">Waiting for confirmation…</p>
+          </div>
+        )}
 
         <form onSubmit={handleVerify}>
           <div className="mb-3">

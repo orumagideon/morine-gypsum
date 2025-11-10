@@ -1,4 +1,12 @@
 :root {
+  /* Theme tokens */
+  --bg-900: #0f1724;
+  --glass: rgba(255, 255, 255, 0.06);
+  --card-bg: rgba(255, 255, 255, 0.96);
+  --muted-white: rgba(255, 255, 255, 0.95);
+  --accent: #00bcd4;
+  --shadow-1: rgba(2, 6, 23, 0.35);
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -9,7 +17,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   /* layered background: subtle gradient + geometric SVG pattern */
-  background-color: #0f1724;
+  background-color: var(--bg-900);
   background-image:
     linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
     radial-gradient(circle at 10% 10%, rgba(255,255,255,0.03), transparent 15%),
@@ -46,18 +54,18 @@ body::before {
 
 .container:not(.navbar .container):not(.navbar .container-fluid),
 .container-fluid:not(.navbar .container-fluid) {
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: var(--card-bg);
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--shadow-1);
   padding: 20px;
   margin-top: 20px;
   margin-bottom: 20px;
 }
 
 .navbar {
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: var(--glass) !important;
   backdrop-filter: blur(8px) saturate(120%);
-  box-shadow: 0 6px 18px rgba(2,6,23,0.35);
+  box-shadow: 0 6px 18px var(--shadow-1);
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 
@@ -123,22 +131,67 @@ body::before {
   text-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 .site-header .nav-link {
-  color: rgba(255,255,255,0.9) !important;
+  color: rgba(255,255,255,0.95) !important;
+  font-weight: 700;
+  font-size: 1.02rem;
 }
 
 /* Footer styles */
+/* Footer styles */
 .site-footer {
-  border-top: 1px solid rgba(255,255,255,0.03);
-  background: linear-gradient(180deg, rgba(12,17,23,0.5), rgba(6,8,12,0.6));
-  color: rgba(255,255,255,0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(18, 25, 33, 0.95), rgba(10, 14, 20, 0.97));
+  color: var(--muted-white);
+  width: 100%;
+  position: relative;
+  bottom: 0;
+  left: 0;
 }
-.site-footer a { color: rgba(255,255,255,0.85); }
+
+/* Make the footer stick to the bottom */
+html, body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+}
+
+/* Footer links styling */
+.footer-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.footer-link:hover {
+  color: #00bcd4;
+  transform: scale(1.05);
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .footer-links {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
 
 /* Content area sits on a translucent card */
 .content-wrap {
-  background-color: rgba(255,255,255,0.96);
+  background-color: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(2,6,23,0.35);
+  box-shadow: 0 12px 30px var(--shadow-1);
   padding: 28px;
   margin-top: 24px;
   margin-bottom: 24px;
@@ -154,4 +207,86 @@ body::before {
 @media (max-width: 768px) {
   .content-wrap { padding: 16px; margin-top: 16px; margin-bottom: 16px; }
   .site-header .nav-link { font-size: 0.95rem; }
+}
+
+/* Home hero */
+.home-hero {
+  position: relative;
+  color: #fff;
+  /* horizontal padding to match site gutters */
+  padding: 0 24px;
+}
+.home-hero-img {
+  width: 100%;
+  height: clamp(220px, 35vh, 520px);
+  display: block;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.home-hero-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.28));
+  padding: 20px 24px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 900px;
+  width: calc(100% - 48px);
+  box-sizing: border-box;
+}
+.home-hero-title {
+  font-size: 2.2rem;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.6px;
+}
+.home-hero-sub {
+  margin: 0 0 12px 0;
+  opacity: 0.95;
+}
+.home-hero-cta { margin: 0; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .home-hero-img { max-height: 300px; }
+  .home-hero-title { font-size: 1.5rem; }
+}
+
+/* Header / nav icon styles */
+.nav-icon { width: 26px; height: 26px; object-fit: contain; }
+.site-logo { height: 48px; width: auto; }
+.brand-text { color: #fff; font-weight: 800; font-size: 1.02rem; }
+
+/* Slightly increase spacing and hit-area for nav items */
+.site-header .nav-link {
+  padding: 0.45rem 0.6rem;
+}
+
+/* Hover emphasis */
+.site-header .nav-link:hover {
+  transform: translateY(-1px);
+  text-shadow: 0 3px 10px rgba(0,0,0,0.55);
+}
+
+/* Larger inline icon + label combo for main nav actions */
+.navbar-nav .nav-item .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1.08rem;
+}
+
+/* Mobile adjustments: keep header compact on small screens */
+@media (max-width: 768px) {
+  .site-logo { height: 36px; }
+  .nav-icon { width: 20px; height: 20px; }
+  .navbar-nav .nav-item .nav-link {
+    font-size: 1rem;
+    font-weight: 700;
+    gap: 0.4rem;
+  }
+  .brand-text { font-size: 0.98rem; }
+  /* Reduce padding to tighten header on mobile */
+  .site-header .nav-link { padding: 0.35rem 0.4rem; }
 }

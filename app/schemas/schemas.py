@@ -190,6 +190,9 @@ class OrderRead(OrderBase):
     total_amount: Optional[float] = None
     total_price: float
     shipping_cost: Optional[float] = None
+    shipping_provider: Optional[str] = None
+    tracking_number: Optional[str] = None
+    shipped_at: Optional[datetime] = None
     created_at: datetime
     items: List[OrderItemRead]
 
@@ -203,6 +206,8 @@ class OrderUpdate(SQLModel):
     delivery_address: Optional[str] = None
     status: Optional[str] = None
     payment_status: Optional[str] = None
+    shipping_provider: Optional[str] = None
+    tracking_number: Optional[str] = None
 
 
 class PaymentVerification(SQLModel):

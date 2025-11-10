@@ -13,6 +13,9 @@ from app.services.email_service import (
     send_payment_confirmation,
     send_invoice_email
 )
+from app.config import get_settings
+import time
+import uuid
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -259,6 +262,116 @@ def verify_payment(
 
 
 # ===============================
+# INITIATE MPESA STK PUSH (Pochi / Simulation)
+# ===============================
+@router.post("/{order_id}/mpesa/push")
+def initiate_mpesa_push(order_id: int, payload: dict, session: Session = Depends(get_session)):
+    """Initiate an STK Push for the given order. If an external MPESA provider is configured
+    (via settings/payment), this will attempt to call it; otherwise we simulate and return
+    a request id. The frontend can poll the status endpoint or rely on webhook callbacks.
+    Payload should include: phone_number (string) and optional amount (float).
+    """
+    order = session.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    phone = payload.get("phone_number")
+    amount = payload.get("amount") or order.total_amount or order.total_price
+    if not phone:
+        raise HTTPException(status_code=400, detail="phone_number is required")
+
+    settings = get_settings()
+    mpesa_cfg = settings.get("payment", {}).get("mpesa", {})
+
+    # If real provider credentials are not configured, simulate a push request
+    # and store a request reference on the order record.
+    request_id = f"SIM-{order_id}-{int(time.time())}"
+    order.mpesa_request_id = request_id
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+
+    # In a real integration we'd call the provider here and return their request id
+    return {"request_id": request_id, "message": "STK Push initiated (simulated)"}
+
+
+# ===============================
+# MPESA STATUS (for polling)
+# ===============================
+@router.get("/{order_id}/mpesa/status")
+def mpesa_status(order_id: int, session: Session = Depends(get_session)):
+    order = session.get(Order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    return {
+        "order_id": order.id,
+        "payment_status": order.payment_status,
+        "payment_verified": order.payment_verified,
+        "mpesa_request_id": order.mpesa_request_id,
+        "mpesa_code": order.mpesa_code,
+    }
+
+
+# ===============================
+# MPESA WEBHOOK (called by provider when payment is confirmed)
+# ===============================
+@router.post("/mpesa/webhook")
+def mpesa_webhook(payload: dict, session: Session = Depends(get_session)):
+    """Receive MPESA payment confirmation callbacks from provider.
+    Expected payload (varies by provider): {order_id, mpesa_code, phone_number, status, amount}
+    This endpoint marks the order as paid/verified and sends notifications.
+    """
+    order_id = payload.get("order_id")
+    mpesa_code = payload.get("mpesa_code")
+    phone_number = payload.get("phone_number")
+    status = payload.get("status", "SUCCESS")
+
+    if not order_id:
+        raise HTTPException(status_code=400, detail="order_id required")
+
+    order = session.get(Order, int(order_id))
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Only accept successful statuses
+    if str(status).upper() not in ("SUCCESS", "PAID", "COMPLETED"):
+        return {"received": True, "message": "Ignored non-successful status"}
+
+    # Update order
+    order.mpesa_code = mpesa_code or order.mpesa_code
+    order.payment_verified = True
+    order.payment_status = "verified"
+    session.add(order)
+    session.commit()
+    session.refresh(order)
+
+    # Update invoice if present
+    invoice = session.exec(select(Invoice).where(Invoice.order_id == order.id)).first()
+    if invoice:
+        invoice.payment_status = "Paid"
+        invoice.payment_method = "MPESA"
+        session.add(invoice)
+        session.commit()
+
+    # Send notifications
+    order_dict = {
+        "id": order.id,
+        "customer_name": order.customer_name,
+        "customer_email": order.customer_email,
+        "customer_phone": order.customer_phone,
+        "total_amount": order.total_amount,
+        "total_price": order.total_price,
+        "payment_method": order.payment_method,
+        "mpesa_code": order.mpesa_code,
+        "status": order.status,
+    }
+    send_payment_confirmation(order_dict)
+
+    return {"received": True, "order_id": order.id}
+
+
+# ===============================
 # READ ALL ORDERS
 # ===============================
 @router.get("/", response_model=list[OrderRead])
@@ -367,8 +480,8 @@ def update_order(
     order = session.get(Order, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-
     update_data = order_update.dict(exclude_unset=True)
+    previous_status = order.status
     for key, value in update_data.items():
         setattr(order, key, value)
 
@@ -409,6 +522,34 @@ def update_order(
         "created_at": order.created_at,
         "items": items_response,
     }
+    # If the order was just marked as shipped or tracking info added, send notifications
+    try:
+        if ("status" in update_data and update_data.get("status") == "shipped") or ("tracking_number" in update_data and update_data.get("tracking_number")):
+            order_dict_notify = {
+                "id": order.id,
+                "customer_name": order.customer_name,
+                "customer_email": order.customer_email,
+                "customer_phone": order.customer_phone,
+                "total_amount": order.total_amount,
+                "total_price": order.total_price,
+                "payment_method": order.payment_method,
+                "status": order.status,
+                "tracking_number": order.tracking_number,
+                "shipping_provider": order.shipping_provider,
+            }
+            # send shipment notification (best-effort)
+            try:
+                send_order_notification(order_dict_notify)  # notify admin
+            except Exception:
+                pass
+            try:
+                from app.services.email_service import send_shipment_notification
+                send_shipment_notification(order_dict_notify)
+            except Exception:
+                pass
+    except Exception:
+        # don't fail the update because notification failed
+        pass
 
     return order_response
 

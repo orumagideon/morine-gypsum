@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="300" viewBox="0 0 500 300">
+  <defs>
+    <filter id="textDropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.2"></feDropShadow>
+    </filter>
+  </defs>
+
+  <style>
+    /* Typography */
+    .text-heading { font-family: 'Poppins', Arial, sans-serif; font-weight: 800; }
+    .text-name { font-family: 'Poppins', Arial, sans-serif; font-weight: 700; }
+    .text-tagline { font-family: 'Poppins', Arial, sans-serif; font-weight: 500; }
+
+    /* Colors */
+    .color-dark-charcoal { fill: #4A4A4A; }
+    .color-rich-gold { stroke: #B59345; fill: none; }
+    .color-tagline { fill: #B59345; }
+  </style>
+
+  <!-- Transparent background -->
+  <rect width="100%" height="100%" fill="none"></rect>
+
+  <!-- MG Logo (centered group) -->
+  <g transform="translate(140, 0)">
+    <!-- M -->
+    <text x="0" y="145" font-size="120" class="text-heading color-dark-charcoal" filter="url(#textDropShadow)">M</text>
+    <!-- G closer -->
+    <text x="120" y="145" font-size="120" class="text-heading color-dark-charcoal" filter="url(#textDropShadow)">G</text>
+
+    <!-- Gold checkmark (smaller, aligned) -->
+    <path d="M60 110 L100 140 L200 60" class="color-rich-gold" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"></path>
+    <path d="M60 110 L100 140 L200 60" stroke="#7E6830" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round" style="z-index: -1;"></path>
+  </g>
+
+  <!-- Company name -->
+  <text x="250" y="220" font-size="38" class="text-name" fill="#4A4A4A" letter-spacing="3.5" text-anchor="middle">
+    MORINE GYPSUM
+  </text>
+
+  <!-- Tagline -->
+  <text x="250" y="255" font-size="16" class="text-tagline color-tagline" letter-spacing="1" text-anchor="middle">
+    QUALITY BUILDING MATERIALS • RELIABLE DELIVERY
+  </text>
+</svg>

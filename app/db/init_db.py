@@ -70,3 +70,41 @@ def create_db_and_tables():
         _ensure_admin_email_column()
     except Exception:
         print("Warning: failed to ensure adminuser.email column")
+    try:
+        # Ensure mpesa_request_id column on orders table for tracking STK push requests
+        with engine.begin() as conn:
+            col_check = conn.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'order' AND column_name = 'mpesa_request_id'"
+                )
+            )
+            if not col_check.first():
+                conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS mpesa_request_id varchar"))
+    except Exception:
+        print("Warning: failed to ensure order.mpesa_request_id column")
+    try:
+        # Ensure shipping columns on orders table
+        with engine.begin() as conn:
+            col_check = conn.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'order' AND column_name = 'tracking_number'"
+                )
+            )
+            if not col_check.first():
+                conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS tracking_number varchar"))
+            col_check2 = conn.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'order' AND column_name = 'shipping_provider'"
+                )
+            )
+            if not col_check2.first():
+                conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS shipping_provider varchar"))
+            col_check3 = conn.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'order' AND column_name = 'shipped_at'"
+                )
+            )
+            if not col_check3.first():
+                conn.execute(text("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS shipped_at timestamp"))
+    except Exception:
+        print("Warning: failed to ensure order.shipping columns")

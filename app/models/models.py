@@ -110,10 +110,15 @@ class Order(SQLModel, table=True):
     payment_status: str = Field(default="pending")  # pending, verified, paid, failed
     mpesa_code: Optional[str] = None  # MPESA confirmation code
     payment_verified: bool = Field(default=False)
+    # Request reference id for STK Push / Pochi requests (optional)
+    mpesa_request_id: Optional[str] = None
     total_amount: Optional[float] = None  # Total including shipping
     total_price: float  # Subtotal
     shipping_cost: float = Field(default=500.0)
     notes: Optional[str] = None
+    shipping_provider: Optional[str] = None
+    tracking_number: Optional[str] = None
+    shipped_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # customer: Optional[Customer] = Relationship(back_populates="orders")  # Commented out since customer_id removed

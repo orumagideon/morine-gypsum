@@ -13,6 +13,7 @@ from app.models.models import AdminUser
 from app.routers.auth_router import get_password_hash, verify_password, SECRET_KEY, ALGORITHM
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from app.services.email_service import send_email
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -163,4 +164,24 @@ async def update_admin_settings(settings: dict):
         json.dump(updated_settings, f, indent=2)
     
     return {"message": "Settings updated successfully", "settings": updated_settings}
+
+
+@router.post("/test-email")
+async def test_email(payload: dict = Body(...)):
+    """Send a test email using configured SMTP settings. Payload: {to_email, subject, body}.
+
+    This is useful to verify SMTP configuration when enabling admin notifications.
+    """
+    to_email = payload.get("to_email")
+    subject = payload.get("subject", "Test Email from Morine Gypsum")
+    body = payload.get("body", "This is a test email.")
+
+    if not to_email:
+        raise HTTPException(status_code=400, detail="to_email is required")
+
+    success = send_email(to_email, subject, body)
+    if success:
+        return {"sent": True, "to": to_email}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test email. Check SMTP settings.")
 
