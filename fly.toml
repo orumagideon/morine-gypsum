@@ -1,11 +1,9 @@
 [app]
-  # Change this name if it's already taken in Fly.io
   app = "morine-gypsum-backend"
   primary_region = "iad"
 
 [build]
-  # Use the included Dockerfile
-  image = ""
+  dockerfile = "Dockerfile"
 
 [[services]]
   http_checks = []
@@ -17,11 +15,13 @@
     port = 80
 
   [[services.ports]]
-    handlers = ["tls", "http"]
-    port = 443
+      # `app` must be a string set at the top-level for flyctl. Keep name here.
+      # If you prefer the simpler structure, you can also place `app = "..."` at top-level.
+      app = "morine-gypsum-backend"
+      primary_region = "iad"
 
   [[services.tcp_checks]]
-    grace_period = "1m"
-    interval = "15s"
+      # Use the included Dockerfile
+      dockerfile = "Dockerfile"
     port = 8080
     restart_limit = 6
