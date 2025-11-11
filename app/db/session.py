@@ -3,6 +3,7 @@ from sqlmodel import create_engine, Session
 from dotenv import load_dotenv
 import os
 from urllib.parse import urlparse
+from urllib.parse import urlparse
 
 load_dotenv()  # Load .env variables
 
@@ -45,7 +46,22 @@ if db_hostname and db_hostname not in ("localhost", "127.0.0.1", "::1"):
     engine = create_engine(DATABASE_URL, echo=True, connect_args={"sslmode": "require"})
 else:
     print("DEBUG: connecting without sslmode")
-    engine = create_engine(DATABASE_URL, echo=True)
+    # Decide whether to enable SSL/TLS for the DB connection. Cloud providers
+    # (Supabase, etc.) typically require TLS; local development usually does not.
+    enable_ssl = True
+    try:
+        parsed = urlparse(DATABASE_URL)
+        host = parsed.hostname or ""
+        if host.startswith("localhost") or host.startswith("127."):
+            enable_ssl = False
+    except Exception:
+        # If parsing fails, default to enabling SSL (safer for remote DBs)
+        enable_ssl = True
+
+    if enable_ssl:
+        engine = create_engine(DATABASE_URL, echo=True, connect_args={"sslmode": "require"})
+    else:
+        engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():
     with Session(engine) as session:
