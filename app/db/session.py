@@ -15,13 +15,17 @@ DATABASE_URL = os.getenv(
 # Accept common variants and trim whitespace to be robust against different
 # secret encodings or accidental surrounding whitespace.
 if DATABASE_URL:
+    # Trim surrounding whitespace and perform a case-insensitive prefix match so
+    # variants like 'Postgres://' or leading newlines won't bypass normalization.
     DATABASE_URL = DATABASE_URL.strip()
-    # legacy shorthand 'postgres://' should be mapped to SQLAlchemy dialect
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
-    elif DATABASE_URL.startswith("postgresql://"):
-        # prefer explicit driver so SQLAlchemy picks up psycopg2
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+    low = DATABASE_URL.lower()
+    if low.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL[len(low[:len("postgres://")]):]
+        # Rebuild with explicit driver to avoid SQLAlchemy trying to load a
+        # non-existent 'postgres' dialect plugin.
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgres://"):]
+    elif low.startswith("postgresql://"):
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://"):]
 
 engine = create_engine(DATABASE_URL, echo=True)
 
