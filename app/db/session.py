@@ -21,12 +21,10 @@ if DATABASE_URL:
     DATABASE_URL = DATABASE_URL.strip()
     low = DATABASE_URL.lower()
     if low.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL[len(low[:len("postgres://")]):]
-        # Rebuild with explicit driver to avoid SQLAlchemy trying to load a
-        # non-existent 'postgres' dialect plugin.
-        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgres://"):]
+        # Simple and safe replacement of the scheme to include the psycopg2 driver
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
     elif low.startswith("postgresql://"):
-        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://"):]
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # If the database is remote (not localhost) require SSL. Some providers
 # (like Supabase) require TLS connections; passing connect_args ensures
