@@ -35,10 +35,16 @@ try:
     db_hostname = parsed.hostname
 except Exception:
     db_hostname = None
+# Debug info (will appear in Fly logs) to help diagnose hostname parsing issues
+raw_db = os.getenv("DATABASE_URL")
+print("DEBUG: raw DATABASE_URL present:", bool(raw_db))
+print("DEBUG: parsed DB hostname:", db_hostname)
 
 if db_hostname and db_hostname not in ("localhost", "127.0.0.1", "::1"):
+    print("DEBUG: using sslmode=require for DB connection")
     engine = create_engine(DATABASE_URL, echo=True, connect_args={"sslmode": "require"})
 else:
+    print("DEBUG: connecting without sslmode")
     engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():
