@@ -54,58 +54,52 @@ export default function ProductList({ categoryId, searchTerm }) {
   }
 
   return (
-    <div className="row">
+    <div className="product-grid">
       {products.map((p) => (
-        <div key={p.id} className="col-md-4 mb-4">
-          <div className="card h-100">
-            {p.image_url && (
-              <img
-                src={
-                  p.image_url.startsWith("http")
-                    ? p.image_url
-                    : `${api.defaults.baseURL}${p.image_url}`
-                }
-                className="card-img-top"
-                alt={p.name}
-                style={{ height: 200, objectFit: "cover" }}
-              />
+        <article key={p.id} className="product-card card h-100">
+          {p.image_url && (
+            <img
+              src={
+                p.image_url.startsWith("http")
+                  ? p.image_url
+                  : `${api.defaults.baseURL}${p.image_url}`
+              }
+              className="card-img-top"
+              alt={p.name}
+            />
+          )}
+          <div className="card-body d-flex flex-column">
+            <h5 className="card-title">{p.name}</h5>
+            {p.category && (
+              <span className="badge bg-secondary mb-2">{p.category.name}</span>
             )}
-            <div className="card-body d-flex flex-column">
-              <h5 className="card-title">{p.name}</h5>
-              {p.category && (
-                <span className="badge bg-secondary mb-2">{p.category.name}</span>
-              )}
-              <p className="card-text flex-grow-1">
-                {p.description?.substring(0, 100)}
-                {p.description?.length > 100 ? "..." : ""}
-              </p>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <strong className="text-primary">KES {p.price?.toLocaleString()}</strong>
-                  {p.stock_quantity !== undefined && (
-                    <div>
-                      <small
-                        className={
-                          p.stock_quantity < 10 ? "text-danger" : "text-muted"
-                        }
-                      >
-                        {p.stock_quantity > 0
-                          ? `${p.stock_quantity} in stock`
-                          : "Out of stock"}
-                      </small>
-                    </div>
-                  )}
-                </div>
-                <Link
-                  to={`/products/${p.id}`}
-                  className="btn btn-primary"
-                >
-                  View Details
-                </Link>
+            <p className="card-text flex-grow-1">
+              {p.description?.substring(0, 120)}
+              {p.description?.length > 120 ? "..." : ""}
+            </p>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <strong className="text-primary">KES {p.price?.toLocaleString()}</strong>
+                {p.stock_quantity !== undefined && (
+                  <div>
+                    <small
+                      className={
+                        p.stock_quantity < 10 ? "text-danger" : "text-muted"
+                      }
+                    >
+                      {p.stock_quantity > 0
+                        ? `${p.stock_quantity} in stock`
+                        : "Out of stock"}
+                    </small>
+                  </div>
+                )}
               </div>
+              <Link to={`/products/${p.id}`} className="btn btn-primary">
+                View Details
+              </Link>
             </div>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   );

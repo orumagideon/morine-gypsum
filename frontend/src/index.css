@@ -209,6 +209,41 @@ main {
   .site-header .nav-link { font-size: 0.95rem; }
 }
 
+/* Product grid: responsive, auto-fit columns */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.product-card .card-img-top {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+
+/* Improve hit targets on small screens */
+@media (max-width: 480px) {
+  :root { font-size: 15px; }
+  .brand-text { font-size: 0.95rem; }
+  .product-grid { gap: 0.85rem; }
+  .home-hero-title { font-size: 1.3rem; }
+}
+
+/* Tablet specific tweaks */
+@media (min-width: 481px) and (max-width: 1024px) {
+  :root { font-size: 16px; }
+  .home-hero-title { font-size: 1.8rem; }
+}
+
 /* Home hero */
 .home-hero {
   position: relative;
