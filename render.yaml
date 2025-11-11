@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: morine-gypsum-backend
+    env: docker
+    branch: main
+    plan: free
+    dockerfilePath: Dockerfile
+    buildCommand: ""
+    startCommand: ""
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        scope: private
+      - key: SUPABASE_URL
+        scope: private
+      - key: SUPABASE_KEY
+        scope: private
+      - key: ALLOWED_ORIGINS
+        scope: private
+      - key: SMTP_HOST
+        scope: private
+      - key: SMTP_PORT
+        scope: private
+      - key: SMTP_USER
+        scope: private
+      - key: SMTP_PASSWORD
+        scope: private
+      - key: SMTP_FROM_EMAIL
+        scope: private
