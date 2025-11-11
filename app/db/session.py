@@ -2,6 +2,7 @@
 from sqlmodel import create_engine, Session
 from dotenv import load_dotenv
 import os
+from urllib.parse import urlparse
 
 load_dotenv()  # Load .env variables
 
@@ -27,7 +28,20 @@ if DATABASE_URL:
     elif low.startswith("postgresql://"):
         DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://"):]
 
-engine = create_engine(DATABASE_URL, echo=True)
+# If the database is remote (not localhost) require SSL. Some providers
+# (like Supabase) require TLS connections; passing connect_args ensures
+# psycopg2 negotiates SSL mode correctly.
+db_hostname = None
+try:
+    parsed = urlparse(DATABASE_URL)
+    db_hostname = parsed.hostname
+except Exception:
+    db_hostname = None
+
+if db_hostname and db_hostname not in ("localhost", "127.0.0.1", "::1"):
+    engine = create_engine(DATABASE_URL, echo=True, connect_args={"sslmode": "require"})
+else:
+    engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():
     with Session(engine) as session:
