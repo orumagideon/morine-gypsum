@@ -1,6 +1,6 @@
-[app]
-  app = "morine-gypsum-backend"
-  primary_region = "iad"
+
+app = "morine-gypsum"
+primary_region = "iad"
 
 [build]
   dockerfile = "Dockerfile"
@@ -15,13 +15,11 @@
     port = 80
 
   [[services.ports]]
-      # `app` must be a string set at the top-level for flyctl. Keep name here.
-      # If you prefer the simpler structure, you can also place `app = "..."` at top-level.
-      app = "morine-gypsum-backend"
-      primary_region = "iad"
+    handlers = ["tls", "http"]
+    port = 443
 
   [[services.tcp_checks]]
-      # Use the included Dockerfile
-      dockerfile = "Dockerfile"
+    interval = 10000
+    timeout = 2000
     port = 8080
     restart_limit = 6

@@ -3,6 +3,11 @@ from app.db.session import engine
 from app.models import *  # Import all models so SQLModel can create tables
 from sqlmodel import SQLModel
 from sqlalchemy import text
+import time
+import logging
+from sqlalchemy.exc import OperationalError
+
+logger = logging.getLogger("morine.init_db")
 
 
 def _ensure_category_parent_column():
@@ -56,9 +61,43 @@ def _ensure_admin_email_column():
         # that can fail if duplicate data exists. Leave to Alembic or manual migration.
 
 
-def create_db_and_tables():
-    # Create any missing tables first
-    SQLModel.metadata.create_all(engine)
+def create_db_and_tables(retries: int = 5, backoff: float = 2.0):
+    """Create missing tables and run idempotent DDL helpers.
+
+    To make containerised deployments more resilient, this function will
+    retry connecting to the database a few times with exponential backoff
+    before giving up. If the DB remains unreachable we log an error and
+    return without raising so the process doesn't crash immediately; this
+    makes it easier to debug environment/secret issues in hosting platforms.
+    """
+
+    # Try to connect/create tables with retries to handle transient network
+    # failures or the DB coming up slightly later than the app container.
+    attempt = 0
+    while attempt < retries:
+        try:
+            # Create any missing tables first
+            SQLModel.metadata.create_all(engine)
+            break
+        except OperationalError as exc:
+            attempt += 1
+            wait = backoff * (2 ** (attempt - 1))
+            logger.warning(
+                "Database unreachable (attempt %d/%d): %s — retrying in %.1fs",
+                attempt,
+                retries,
+                str(exc).splitlines()[0],
+                wait,
+            )
+            time.sleep(wait)
+    else:
+        logger.error(
+            "Could not connect to the database after %d attempts. "
+            "Check DATABASE_URL and network access. Skipping create_all.",
+            retries,
+        )
+        # Avoid raising so the app can start and the logs make the problem clear.
+        return
 
     # Ensure specific columns/constraints that SQLModel.create_all can't add to existing tables
     try:

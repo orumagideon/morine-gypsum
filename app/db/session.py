@@ -3,9 +3,11 @@ from sqlmodel import create_engine, Session
 from dotenv import load_dotenv
 import os
 from urllib.parse import urlparse
-from urllib.parse import urlparse
+import logging
 
 load_dotenv()  # Load .env variables
+
+logger = logging.getLogger("morine.db")
 
 # PostgreSQL database configuration
 DATABASE_URL = os.getenv(
@@ -17,14 +19,12 @@ DATABASE_URL = os.getenv(
 # Accept common variants and trim whitespace to be robust against different
 # secret encodings or accidental surrounding whitespace.
 if DATABASE_URL:
-    # Trim surrounding whitespace and perform a case-insensitive prefix match so
-    # variants like 'Postgres://' or leading newlines won't bypass normalization.
+    # Trim surrounding whitespace and perform a case-insensitive prefix match
     DATABASE_URL = DATABASE_URL.strip()
     low = DATABASE_URL.lower()
     if low.startswith("postgres://"):
-        # Simple and safe replacement of the scheme to include the psycopg2 driver
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
-    elif low.startswith("postgresql://"):
+    elif low.startswith("postgresql://") and "psycopg2" not in low:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # If the database is remote (not localhost) require SSL. Some providers
@@ -36,32 +36,23 @@ try:
     db_hostname = parsed.hostname
 except Exception:
     db_hostname = None
-# Debug info (will appear in Fly logs) to help diagnose hostname parsing issues
+
 raw_db = os.getenv("DATABASE_URL")
-print("DEBUG: raw DATABASE_URL present:", bool(raw_db))
-print("DEBUG: parsed DB hostname:", db_hostname)
+logger.debug("raw DATABASE_URL present: %s", bool(raw_db))
+logger.debug("parsed DB hostname: %s", db_hostname)
 
+# Use pool_pre_ping to avoid stale connection errors in long-running apps
+connect_args = {}
 if db_hostname and db_hostname not in ("localhost", "127.0.0.1", "::1"):
-    print("DEBUG: using sslmode=require for DB connection")
-    engine = create_engine(DATABASE_URL, echo=True, connect_args={"sslmode": "require"})
-else:
-    print("DEBUG: connecting without sslmode")
-    # Decide whether to enable SSL/TLS for the DB connection. Cloud providers
-    # (Supabase, etc.) typically require TLS; local development usually does not.
-    enable_ssl = True
-    try:
-        parsed = urlparse(DATABASE_URL)
-        host = parsed.hostname or ""
-        if host.startswith("localhost") or host.startswith("127."):
-            enable_ssl = False
-    except Exception:
-        # If parsing fails, default to enabling SSL (safer for remote DBs)
-        enable_ssl = True
+    logger.debug("using sslmode=require for DB connection")
+    connect_args = {"sslmode": "require"}
 
-    if enable_ssl:
-        engine = create_engine(DATABASE_URL, echo=True, connect_args={"sslmode": "require"})
-    else:
-        engine = create_engine(DATABASE_URL, echo=True)
+# Keep SQL logging off by default in production; echo can be enabled with
+# an env var if needed (e.g. DEBUG_SQL=true)
+echo = os.getenv("DEBUG_SQL", "false").lower() in ("1", "true", "yes")
+
+engine = create_engine(DATABASE_URL, echo=echo, connect_args=connect_args, pool_pre_ping=True)
+
 
 def get_session():
     with Session(engine) as session:
