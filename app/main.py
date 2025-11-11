@@ -16,6 +16,7 @@ app = FastAPI(title="Morine Gypsum API")
 # FRONTEND (React) CORS CONFIGURATION ✅
 # ============================================
 # Read allowed origins from environment (comma-separated), fall back to defaults
+
 allowed = os.getenv("ALLOWED_ORIGINS", "")
 if allowed:
     origins = [o.strip() for o in allowed.split(",") if o.strip()]
@@ -30,6 +31,8 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    # Optionally allow Cloudflare Pages subdomains like https://<branch>.pages.dev
+    allow_origin_regex=os.getenv("ALLOW_PAGES_WILDCARD", "^https://.*\\.pages\\.dev$") if os.getenv("ALLOW_PAGES_WILDCARD", "true").lower() in ("1","true","yes") else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,3 +65,13 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 @app.get("/")
 def root():
     return {"message": "Welcome to Morine Gypsum API"}
+
+
+@app.get("/health")
+def health():
+    """Simple health endpoint used by load balancers and Cloudflare.
+
+    Note: this only indicates the app process is running. Database schema
+    availability depends on `DATABASE_URL` being set on the host platform.
+    """
+    return {"status": "ok"}
