@@ -1,6 +1,7 @@
 from typing import Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel
+from pydantic import ConfigDict
 
 
 # ============================================
@@ -20,8 +21,7 @@ class CategoryRead(CategoryBase):
     id: int
     parent_id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CategoryUpdate(SQLModel):
@@ -50,8 +50,7 @@ class ProductRead(ProductBase):
     id: int
     category: Optional["CategoryRead"] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductUpdate(SQLModel):
@@ -81,8 +80,7 @@ class CustomerRead(CustomerBase):
     id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CustomerUpdate(SQLModel):
@@ -110,8 +108,7 @@ class SupplierCreate(SupplierBase):
 class SupplierRead(SupplierBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SupplierUpdate(SQLModel):
@@ -140,8 +137,7 @@ class ProductSupplyRead(ProductSupplyBase):
     id: int
     supply_date: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================
@@ -196,8 +192,7 @@ class OrderRead(OrderBase):
     created_at: datetime
     items: List[OrderItemRead]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
         
 class OrderUpdate(SQLModel):
     customer_name: Optional[str] = None
@@ -234,8 +229,7 @@ class InvoiceRead(InvoiceBase):
     invoice_date: datetime
     payment_status: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InvoiceUpdate(SQLModel):
@@ -257,5 +251,4 @@ class AdminUserCreate(AdminUserBase):
 class AdminUserRead(AdminUserBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,19 +1,22 @@
 # app/schemas/category_schema.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
+
 
 class CategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
 
+
 class CategoryCreate(CategoryBase):
     pass
+
 
 class CategoryRead(CategoryBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
