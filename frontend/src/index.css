@@ -136,6 +136,50 @@ body::before {
   font-size: 1.02rem;
 }
 
+/* Make navbar toggler (hamburger) more visible using the accent color */
+.navbar-toggler {
+  border: none;
+  background: transparent;
+}
+.navbar-toggler-icon {
+  display: inline-block;
+  width: 28px;
+  height: 3px;
+  background: var(--accent);
+  position: relative;
+  border-radius: 2px;
+}
+.navbar-toggler-icon::before,
+.navbar-toggler-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.navbar-toggler-icon::before { top: -8px; }
+.navbar-toggler-icon::after { top: 8px; }
+
+/* Give small nav icons a subtle accented background so they pop on the glassy header */
+.nav-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  background: rgba(0, 188, 212, 0.12);
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.site-header .nav-link {
+  transition: color 160ms ease, transform 160ms ease;
+}
+.site-header .nav-link:hover {
+  color: var(--accent) !important;
+  transform: translateY(-1px);
+}
+
 /* Footer styles */
 /* Footer styles */
 .site-footer {
