@@ -325,3 +325,11 @@ main {
   /* Reduce padding to tighten header on mobile */
   .site-header .nav-link { padding: 0.35rem 0.4rem; }
 }
+
+/* Extra small screens: shrink logo and hide brand text to save space */
+@media (max-width: 420px) {
+  .site-logo { height: 28px; }
+  .brand-text { display: none; }
+  .navbar .navbar-toggler { margin-left: auto; }
+  .navbar-nav .nav-link { font-size: 0.95rem; padding: 0.35rem 0.45rem; }
+}

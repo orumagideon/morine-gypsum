@@ -65,6 +65,7 @@ export default function ProductList({ categoryId, searchTerm }) {
                   : `${api.defaults.baseURL}${p.image_url}`
               }
               className="card-img-top"
+              loading="lazy"
               alt={p.name}
             />
           )}
