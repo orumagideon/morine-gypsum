@@ -1,10 +1,13 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 
 export default function Header() {
   const { getItemCount } = useContext(CartContext);
   const cartCount = getItemCount();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const toggleDrawer = () => setDrawerOpen((s) => !s);
 
   return (
     <header className="site-header">
@@ -18,13 +21,13 @@ export default function Header() {
           <button
             className="navbar-toggler"
             type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
+            aria-label="Toggle navigation"
+            onClick={toggleDrawer}
           >
             <span className="navbar-toggler-icon"></span>
           </button>
 
-          <div className="collapse navbar-collapse" id="navbarNav">
+          <div className={`collapse navbar-collapse ${drawerOpen ? "open" : ""}`} id="navbarNav">
             <ul className="navbar-nav me-auto">
               <li className="nav-item">
                 <Link className="nav-link d-flex align-items-center" to="/">
@@ -65,6 +68,39 @@ export default function Header() {
                 </Link>
               </li>
             </ul>
+          </div>
+          {/* Mobile slide-out drawer overlay */}
+          <div className={`mobile-drawer ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)}>
+            <div className="mobile-drawer-panel" onClick={(e) => e.stopPropagation()}>
+              <button className="btn-close" aria-label="Close" onClick={() => setDrawerOpen(false)}></button>
+              <ul className="navbar-nav">
+                <li className="nav-item">
+                  <Link className="nav-link" to="/" onClick={() => setDrawerOpen(false)}>
+                    Home
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/store" onClick={() => setDrawerOpen(false)}>
+                    Store
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/orders" onClick={() => setDrawerOpen(false)}>
+                    My Orders
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/cart" onClick={() => setDrawerOpen(false)}>
+                    Cart
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/admin/dashboard" onClick={() => setDrawerOpen(false)}>
+                    Admin
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </nav>
