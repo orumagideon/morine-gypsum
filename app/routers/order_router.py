@@ -121,7 +121,7 @@ def create_order(order_data: OrderCreate, session: Session = Depends(get_session
         "customer_phone": order.customer_phone,
         "delivery_address": order.delivery_address,
         "order_items": order_items_data,
-        "total_price": order.total_amount,
+        "total_price": order.total_price,
         "invoice_date": new_invoice.invoice_date,
     }
 
@@ -589,32 +589,30 @@ def get_order_invoice(order_id: int, session: Session = Depends(get_session)):
     if not invoice:
         raise HTTPException(status_code=404, detail="No invoice record found for this order")
 
-    # Path where PDF should exist
+    # Always regenerate the PDF so fixes to invoice formatting apply immediately.
     pdf_path = f"app/static/invoices/invoice_{invoice.id}.pdf"
 
-    # Regenerate the PDF if missing
-    if not os.path.exists(pdf_path):
-        order_items = session.exec(select(OrderItem).where(OrderItem.order_id == order_id)).all()
-        order_items_data = [
-            {
-                "name": session.get(Product, item.product_id).name,
-                "quantity": item.quantity,
-                "price": item.price,
-            }
-            for item in order_items
-        ]
-
-        invoice_data = {
-            "invoice_id": invoice.id,
-            "customer_name": order.customer_name,
-            "customer_phone": order.customer_phone,
-            "delivery_address": order.delivery_address,
-            "order_items": order_items_data,
-            "total_price": order.total_amount or order.total_price,
-            "invoice_date": invoice.invoice_date,
+    order_items = session.exec(select(OrderItem).where(OrderItem.order_id == order_id)).all()
+    order_items_data = [
+        {
+            "name": session.get(Product, item.product_id).name,
+            "quantity": item.quantity,
+            "price": item.price,
         }
+        for item in order_items
+    ]
 
-        pdf_path = generate_invoice_pdf(invoice_data)
+    invoice_data = {
+        "invoice_id": invoice.id,
+        "customer_name": order.customer_name,
+        "customer_phone": order.customer_phone,
+        "delivery_address": order.delivery_address,
+        "order_items": order_items_data,
+        "total_price": order.total_price,
+        "invoice_date": invoice.invoice_date,
+    }
+
+    pdf_path = generate_invoice_pdf(invoice_data)
 
     # Return the file for download
     return FileResponse(

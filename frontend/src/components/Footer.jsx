@@ -7,14 +7,12 @@ export default function Footer() {
       <div className="container d-flex flex-column flex-md-row justify-content-between align-items-center text-center text-md-start">
         <div className="mb-3 mb-md-0">
           <h5 className="mb-1 fw-bold text-light">Morine Gypsum</h5>
-          <p className="text-muted small mb-0">
-            Quality building materials · Reliable delivery
-          </p>
+          <p className="text-muted small mb-0">Quality materials and reliable delivery.</p>
         </div>
 
         <div className="footer-links d-flex gap-3 flex-wrap justify-content-center">
           <Link to="/" className="footer-link">Home</Link>
-          <Link to="/store" className="footer-link">Store</Link>
+          <Link to="/#store" className="footer-link">Store</Link>
           <Link to="/admin/login" className="footer-link">Admin</Link>
         </div>
 

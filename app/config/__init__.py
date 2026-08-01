@@ -10,6 +10,13 @@ def get_settings():
             "email": "orumagideon535@gmail.com",
             "password": "@Kisumu254"
         },
+        "smtp": {
+            "server": "smtp.gmail.com",
+            "port": 587,
+            "username": "",
+            "password": "",
+            "fromEmail": ""
+        },
         "payment": {
             "mpesa": {
                 "businessNumber": "0700183022",

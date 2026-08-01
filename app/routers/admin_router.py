@@ -52,10 +52,15 @@ async def update_credentials(
                 admin.password_hash = password_hash
                 admin.email = email
                 admin.username = email
+                admin.is_verified = True
+                admin.otp_hash = None
+                admin.otp_expires_at = None
+                admin.reset_token_hash = None
+                admin.reset_token_expires_at = None
                 session.add(admin)
                 session.commit()
             else:
-                admin = AdminUser(username=email, email=email, password_hash=password_hash)
+                admin = AdminUser(username=email, email=email, password_hash=password_hash, is_verified=True)
                 session.add(admin)
                 session.commit()
     except Exception:
@@ -102,10 +107,15 @@ async def create_temp_admin(payload: TempAdminCreate = Body(...), session: Sessi
         admin.password_hash = password_hash
         admin.email = email
         admin.username = email
+        admin.is_verified = True
+        admin.otp_hash = None
+        admin.otp_expires_at = None
+        admin.reset_token_hash = None
+        admin.reset_token_expires_at = None
         session.add(admin)
         session.commit()
     else:
-        admin = AdminUser(username=email, email=email, password_hash=password_hash)
+        admin = AdminUser(username=email, email=email, password_hash=password_hash, is_verified=True)
         session.add(admin)
         session.commit()
         session.refresh(admin)
@@ -140,6 +150,9 @@ async def change_password(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Current password is incorrect")
 
     admin.password_hash = get_password_hash(payload.new_password)
+    admin.is_verified = True
+    admin.reset_token_hash = None
+    admin.reset_token_expires_at = None
     session.add(admin)
     session.commit()
     return {"message": "Password changed successfully"}

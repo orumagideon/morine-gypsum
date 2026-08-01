@@ -1,5 +1,9 @@
 # app/routers/auth_router.py
 from datetime import datetime, timedelta
+from typing import Optional
+import secrets
+import string
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import select, Session
@@ -10,6 +14,18 @@ from pydantic import BaseModel
 from app.db.session import get_session
 from app.models.models import AdminUser
 from app.config import get_settings
+from app.services.email_service import send_otp_email
+
+try:
+    import bcrypt as _bcrypt
+
+    if not hasattr(_bcrypt, "__about__"):
+        class _About:
+            __version__ = getattr(_bcrypt, "__version__", "4.0.1")
+
+        _bcrypt.__about__ = _About()
+except Exception:
+    pass
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -36,6 +52,37 @@ class LoginRequest(BaseModel):
     # which may be either an email or username for backward compatibility.
     email: str
     password: str
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    username: Optional[str] = None
+
+
+class OtpVerificationRequest(BaseModel):
+    email: str
+    otp: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str
+
+
+def _generate_otp(length: int = 6) -> str:
+    return "".join(secrets.choice(string.digits) for _ in range(length))
+
+
+def _find_admin(session: Session, identifier: str):
+    return session.exec(
+        select(AdminUser).where(or_(AdminUser.username == identifier, AdminUser.email == identifier))
+    ).first()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -115,10 +162,94 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    admin = session.exec(select(AdminUser).where(AdminUser.username == username)).first()
+    admin = session.exec(
+        select(AdminUser).where(or_(AdminUser.username == username, AdminUser.email == username))
+    ).first()
     if admin is None:
         raise credentials_exception
+    if not getattr(admin, "is_verified", True):
+        raise credentials_exception
     return admin
+
+
+@router.post("/register")
+async def register_admin(payload: RegisterRequest, session: Session = Depends(get_session)):
+    """Admin signup is disabled; access is login-only."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin signup is disabled.",
+    )
+
+
+@router.post("/verify-otp")
+async def verify_admin_otp(payload: OtpVerificationRequest, session: Session = Depends(get_session)):
+    """Verify the OTP sent during registration."""
+    email = payload.email.strip().lower()
+    admin = _find_admin(session, email)
+    if not admin or not admin.otp_hash:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Verification code not found")
+
+    if admin.otp_expires_at and admin.otp_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired")
+
+    if not verify_password(payload.otp.strip(), admin.otp_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
+
+    admin.is_verified = True
+    admin.otp_hash = None
+    admin.otp_expires_at = None
+    session.add(admin)
+    session.commit()
+
+    return {"message": "Account verified successfully"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(payload: ForgotPasswordRequest, session: Session = Depends(get_session)):
+    """Send a password reset OTP to the admin email address."""
+    email = payload.email.strip().lower()
+    admin = _find_admin(session, email)
+    if not admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin account not found")
+
+    otp_code = _generate_otp()
+    admin.reset_token_hash = get_password_hash(otp_code)
+    admin.reset_token_expires_at = datetime.utcnow() + timedelta(minutes=15)
+    session.add(admin)
+    session.commit()
+
+    email_sent = send_otp_email(email, otp_code, purpose="reset")
+    if email_sent:
+        return {"message": "Password reset code sent to your email"}
+
+    return {
+        "message": "Password reset code generated. SMTP is not configured, so use the code shown here.",
+        "dev_reset_code": otp_code,
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(payload: ResetPasswordRequest, session: Session = Depends(get_session)):
+    """Reset the admin password using the emailed OTP."""
+    email = payload.email.strip().lower()
+    admin = _find_admin(session, email)
+    if not admin or not admin.reset_token_hash:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reset code not found")
+
+    if admin.reset_token_expires_at and admin.reset_token_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset code expired")
+
+    if not verify_password(payload.otp.strip(), admin.reset_token_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset code")
+
+    admin.password_hash = get_password_hash(payload.new_password)
+    admin.reset_token_hash = None
+    admin.reset_token_expires_at = None
+    admin.is_verified = True
+    session.add(admin)
+    session.commit()
+
+    return {"message": "Password reset successfully"}
 
 
 @router.post("/login")
@@ -138,25 +269,21 @@ async def login(
     password = login_data.password
     
     # Check if admin exists (match either username or email)
-    admin = session.exec(
-        select(AdminUser).where(
-            or_(AdminUser.username == email, AdminUser.email == email)
-        )
-    ).first()
+    admin = _find_admin(session, email)
     
     # If admin doesn't exist, create it if credentials match settings defaults
     if not admin:
         created = False
         # First try hashed settings password if available
         if settings_password_hash and verify_password(password, settings_password_hash) and email == default_email:
-            admin = AdminUser(username=default_email, email=default_email, password_hash=settings_password_hash)
+            admin = AdminUser(username=default_email, email=default_email, password_hash=settings_password_hash, is_verified=True)
             session.add(admin)
             session.commit()
             session.refresh(admin)
             created = True
         # Fallback: legacy plaintext default password
         if not created and email == default_email and password == default_password:
-            admin = AdminUser(username=default_email, email=default_email, password_hash=get_password_hash(default_password))
+            admin = AdminUser(username=default_email, email=default_email, password_hash=get_password_hash(default_password), is_verified=True)
             session.add(admin)
             session.commit()
             session.refresh(admin)
@@ -220,6 +347,12 @@ async def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    if not getattr(admin, "is_verified", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account not verified. Please check your email for the OTP code.",
+        )
     
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -270,6 +403,11 @@ async def reset_admin(session: Session = Depends(get_session)):
     if admin:
         # Update existing admin
         admin.password_hash = get_password_hash(default_password)
+        admin.is_verified = True
+        admin.otp_hash = None
+        admin.otp_expires_at = None
+        admin.reset_token_hash = None
+        admin.reset_token_expires_at = None
         session.add(admin)
         session.commit()
         return {"message": f"Admin user '{default_email}' password reset successfully"}
@@ -278,7 +416,8 @@ async def reset_admin(session: Session = Depends(get_session)):
         admin = AdminUser(
             username=default_email,
             email=default_email,
-            password_hash=get_password_hash(default_password)
+            password_hash=get_password_hash(default_password),
+            is_verified=True,
         )
         session.add(admin)
         session.commit()

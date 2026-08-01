@@ -8,6 +8,28 @@ from email import encoders
 from typing import Optional
 from app.config import get_settings
 
+
+def _get_smtp_config():
+    settings = get_settings()
+    smtp_settings = settings.get("smtp", {})
+
+    smtp_server = os.getenv("SMTP_SERVER") or os.getenv("SMTP_HOST") or smtp_settings.get("server") or "smtp.gmail.com"
+    smtp_port = int(os.getenv("SMTP_PORT") or smtp_settings.get("port") or 587)
+    smtp_username = (
+        os.getenv("SMTP_USERNAME")
+        or os.getenv("SMTP_USER")
+        or smtp_settings.get("username")
+        or settings.get("notifications", {}).get("adminEmail", "orumagideon535@gmail.com")
+    )
+    smtp_password = os.getenv("SMTP_PASSWORD") or smtp_settings.get("password") or ""
+    smtp_from_email = (
+        os.getenv("SMTP_FROM_EMAIL")
+        or smtp_settings.get("fromEmail")
+        or smtp_username
+    )
+
+    return smtp_server, smtp_port, smtp_username, smtp_password, smtp_from_email
+
 def send_email(
     to_email: str,
     subject: str,
@@ -19,22 +41,16 @@ def send_email(
     Returns True if successful, False otherwise.
     """
     try:
-        settings = get_settings()
-        
-        # Email configuration - should be in environment variables
-        smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_username = os.getenv("SMTP_USERNAME", settings.get("notifications", {}).get("adminEmail", "orumagideon535@gmail.com"))
-        smtp_password = os.getenv("SMTP_PASSWORD", "")  # Should be app-specific password
+        smtp_server, smtp_port, smtp_username, smtp_password, smtp_from_email = _get_smtp_config()
         
         # If no password configured, skip email sending
         if not smtp_password:
-            print(f"SMTP_PASSWORD not configured. Email to {to_email} would be sent with subject: {subject}")
+            print(f"SMTP not configured. Email to {to_email} would be sent with subject: {subject}")
             return False
         
         # Create message
         msg = MIMEMultipart()
-        msg["From"] = smtp_username
+        msg["From"] = smtp_from_email
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "html"))
@@ -56,7 +72,7 @@ def send_email(
         server.starttls()
         server.login(smtp_username, smtp_password)
         text = msg.as_string()
-        server.sendmail(smtp_username, to_email, text)
+        server.sendmail(smtp_from_email, to_email, text)
         server.quit()
         
         return True
@@ -149,13 +165,30 @@ def send_invoice_email(order_data: dict, invoice_path: str) -> bool:
         <p>Dear {order_data['customer_name']},</p>
         <p>Thank you for your order! Please find your invoice attached.</p>
         <p><strong>Order ID:</strong> #{order_data['id']}</p>
-        <p><strong>Total Amount:</strong> KES {order_data.get('total_amount', order_data.get('total_price', 0)):,.2f}</p>
+        <p><strong>Total Amount:</strong> KES {order_data.get('total_price', order_data.get('total_amount', 0)):,.2f}</p>
         <p>Best regards,<br>Morine Gypsum</p>
     </body>
     </html>
     """
     
     return send_email(customer_email, subject, body, invoice_path)
+
+
+def send_otp_email(to_email: str, otp_code: str, purpose: str = "verification") -> bool:
+    """Send a one-time code for signup verification or password reset."""
+    subject = "Your Morine Gypsum verification code" if purpose == "verification" else "Your Morine Gypsum password reset code"
+    heading = "Verify your account" if purpose == "verification" else "Reset your password"
+    body = f"""
+    <html>
+    <body>
+        <h2>{heading}</h2>
+        <p>Your one-time code is:</p>
+        <p style=\"font-size: 28px; font-weight: 700; letter-spacing: 4px;\">{otp_code}</p>
+        <p>This code expires in 15 minutes.</p>
+    </body>
+    </html>
+    """
+    return send_email(to_email, subject, body)
 
 
 def send_shipment_notification(order_data: dict) -> bool:

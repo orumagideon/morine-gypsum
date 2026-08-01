@@ -69,7 +69,7 @@ export function CartProvider({ children }) {
   }
 
   function getTotal() {
-    return items.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    return items.reduce((sum, item) => sum + (item.product.price ?? 0) * item.qty, 0);
   }
 
   function getItemCount() {

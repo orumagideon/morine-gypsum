@@ -36,7 +36,7 @@ class CategoryUpdate(SQLModel):
 class ProductBase(SQLModel):
     name: str
     description: Optional[str] = None
-    price: float
+    price: Optional[float] = None
     stock_quantity: int
     image_url: Optional[str] = None
     category_id: Optional[int] = None

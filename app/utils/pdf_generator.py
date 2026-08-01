@@ -55,7 +55,7 @@ def generate_invoice_pdf(invoice_data: dict, output_dir: str = "app/static/invoi
         ])
 
     # Add total row
-    table_data.append(["", "", "<b>Total:</b>", f"<b>{invoice_data['total_price']:.2f}</b>"])
+    table_data.append(["", "", "Total", f"KES {invoice_data['total_price']:.2f}"])
 
     # Table design
     table = Table(table_data, colWidths=[70*mm, 30*mm, 35*mm, 35*mm])

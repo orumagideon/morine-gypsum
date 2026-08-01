@@ -14,7 +14,7 @@ export default function ProductForm({ product, categories = [], onSuccess, onCan
     if (product) {
       setName(product.name || "");
       setDesc(product.description || "");
-      setPrice(product.price || "");
+      setPrice(product.price ?? "");
       setStock(product.stock_quantity || "");
       setCategoryId(product.category_id || product.category?.id || "");
     }
@@ -27,8 +27,10 @@ export default function ProductForm({ product, categories = [], onSuccess, onCan
     const fd = new FormData();
     fd.append("name", name);
     fd.append("description", desc || "");
-    fd.append("price", price);
     fd.append("stock_quantity", stock);
+    if (price !== "" && price !== null && price !== undefined) {
+      fd.append("price", price);
+    }
     // Always append category_id, even if empty (to allow clearing category on update)
     if (product) {
       fd.append("category_id", categoryId || "");
@@ -107,16 +109,15 @@ export default function ProductForm({ product, categories = [], onSuccess, onCan
       </div>
       <div className="row">
         <div className="col-md-6 mb-3">
-          <label className="form-label">Price (KES) *</label>
+            <label className="form-label">Price (KES)</label>
           <input
             type="number"
             step="0.01"
             min="0"
             className="form-control"
-            placeholder="Price"
+              placeholder="Optional"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            required
           />
         </div>
         <div className="col-md-6 mb-3">

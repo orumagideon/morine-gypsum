@@ -22,7 +22,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def create_product(
     name: str = Form(...),
     description: str = Form(None),
-    price: float = Form(...),
+    price: float = Form(None),
     stock_quantity: int = Form(...),
     category_id: int = Form(None),
     image: UploadFile = File(None),

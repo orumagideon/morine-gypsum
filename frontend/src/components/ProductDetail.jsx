@@ -46,7 +46,7 @@ export default function ProductDetail() {
 
       <p>{product.description}</p>
       <p>
-        <strong>Price:</strong> KES {product.price}
+        <strong>Price:</strong> {product.price != null ? `KES ${product.price}` : "Not set"}
       </p>
       <p>
         <strong>Stock:</strong> {product.stock_quantity}

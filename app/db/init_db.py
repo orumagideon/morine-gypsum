@@ -61,6 +61,35 @@ def _ensure_admin_email_column():
         # that can fail if duplicate data exists. Leave to Alembic or manual migration.
 
 
+def _ensure_admin_security_columns():
+    """Ensure admin verification/reset columns exist."""
+    with engine.begin() as conn:
+        columns = {
+            "is_verified": "boolean DEFAULT true",
+            "otp_hash": "varchar",
+            "otp_expires_at": "timestamp",
+            "reset_token_hash": "varchar",
+            "reset_token_expires_at": "timestamp",
+        }
+        for column_name, column_type in columns.items():
+            col_check = conn.execute(
+                text(
+                    f"SELECT column_name FROM information_schema.columns WHERE table_name = 'adminuser' AND column_name = '{column_name}'"
+                )
+            )
+            if not col_check.first():
+                conn.execute(text(f"ALTER TABLE adminuser ADD COLUMN IF NOT EXISTS {column_name} {column_type}"))
+
+
+def _ensure_product_price_nullable():
+    """Allow product.price to be optional in databases that already have the table."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text('ALTER TABLE product ALTER COLUMN price DROP NOT NULL'))
+    except Exception:
+        pass
+
+
 def create_db_and_tables(retries: int = 5, backoff: float = 2.0):
     """Create missing tables and run idempotent DDL helpers.
 
@@ -109,6 +138,14 @@ def create_db_and_tables(retries: int = 5, backoff: float = 2.0):
         _ensure_admin_email_column()
     except Exception:
         print("Warning: failed to ensure adminuser.email column")
+    try:
+        _ensure_admin_security_columns()
+    except Exception:
+        print("Warning: failed to ensure adminuser security columns")
+    try:
+        _ensure_product_price_nullable()
+    except Exception:
+        print("Warning: failed to ensure product.price is nullable")
     try:
         # Ensure mpesa_request_id column on orders table for tracking STK push requests
         with engine.begin() as conn:

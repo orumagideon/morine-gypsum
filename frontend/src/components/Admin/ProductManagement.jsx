@@ -136,7 +136,7 @@ export default function ProductManagement() {
                 </td>
                 <td>{product.name}</td>
                 <td>{product.category?.name || "Uncategorized"}</td>
-                <td>KES {product.price}</td>
+                <td>{product.price != null ? `KES ${product.price}` : "Not set"}</td>
                 <td>
                   <span
                     className={

@@ -6,6 +6,13 @@ export const defaultSettings = {
     email: "orumagideon535@gmail.com",
     password: "@Kisumu254", // This should be hashed in production
   },
+  smtp: {
+    server: "smtp.gmail.com",
+    port: 587,
+    username: "",
+    password: "",
+    fromEmail: "",
+  },
   payment: {
     mpesa: {
       businessNumber: "0700183022",

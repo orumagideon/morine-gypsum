@@ -36,7 +36,7 @@ export default function Header() {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link className="nav-link d-flex align-items-center" to="/store">
+                <Link className="nav-link d-flex align-items-center" to="/#store">
                   <img src="/building-store.svg" alt="Store" className="nav-icon me-2" />
                   Store
                 </Link>
@@ -80,7 +80,7 @@ export default function Header() {
                   </Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/store" onClick={() => setDrawerOpen(false)}>
+                  <Link className="nav-link" to="/#store" onClick={() => setDrawerOpen(false)}>
                     Store
                   </Link>
                 </li>

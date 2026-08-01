@@ -26,7 +26,7 @@ class Product(SQLModel, table=True):
     name: str = Field(index=True)
     description: Optional[str] = None
     category_id: Optional[int] = Field(default=None, foreign_key="category.id")
-    price: float
+    price: Optional[float] = None
     stock_quantity: int
     image_url: Optional[str] = None
 
@@ -155,3 +155,8 @@ class AdminUser(SQLModel, table=True):
     # in `app/db/init_db.py`.
     email: Optional[str] = Field(default=None, index=True, unique=True)
     password_hash: str
+    is_verified: bool = Field(default=True)
+    otp_hash: Optional[str] = None
+    otp_expires_at: Optional[datetime] = None
+    reset_token_hash: Optional[str] = None
+    reset_token_expires_at: Optional[datetime] = None

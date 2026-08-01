@@ -52,6 +52,17 @@ export default function Settings() {
         }
       }
 
+      // Persist SMTP, payment and notification settings for backend email delivery
+      try {
+        await api.put("/admin/settings", {
+          payment: settings.payment,
+          notifications: settings.notifications,
+          smtp: settings.smtp,
+        });
+      } catch (err) {
+        console.error("Failed to update backend settings:", err);
+      }
+
       setMessage({ type: "success", text: "Settings saved successfully!" });
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
     } catch (error) {
@@ -141,6 +152,64 @@ export default function Settings() {
         </div>
 
         <div className="col-md-6 mb-4">
+          <div className="card mb-4">
+            <div className="card-header">
+              <h5>SMTP Email Settings</h5>
+            </div>
+            <div className="card-body">
+              <div className="mb-3">
+                <label className="form-label">SMTP Server</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={settings.smtp.server}
+                  onChange={(e) => handleChange("smtp", "server", e.target.value)}
+                  placeholder="smtp.gmail.com"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">SMTP Port</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  value={settings.smtp.port}
+                  onChange={(e) => handleChange("smtp", "port", e.target.value)}
+                  placeholder="587"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">SMTP Username</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={settings.smtp.username}
+                  onChange={(e) => handleChange("smtp", "username", e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">SMTP Password</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={settings.smtp.password}
+                  onChange={(e) => handleChange("smtp", "password", e.target.value)}
+                  placeholder="App password"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">From Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={settings.smtp.fromEmail}
+                  onChange={(e) => handleChange("smtp", "fromEmail", e.target.value)}
+                  placeholder="optional"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="card">
             <div className="card-header">
               <h5>MPESA Payment Settings</h5>

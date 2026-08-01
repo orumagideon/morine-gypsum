@@ -75,7 +75,7 @@ export default function Checkout() {
       items: items.map((it) => ({
         product_id: it.product.id,
         quantity: it.qty,
-        price: it.product.price,
+        price: it.product.price ?? null,
       })),
       // Email notification settings
       send_email_to_customer: !!formData.email,
@@ -321,7 +321,7 @@ export default function Checkout() {
                             {item.product.name} x {item.qty}
                           </span>
                           <span>
-                            KES {(item.product.price * item.qty).toLocaleString()}
+                            KES {((item.product.price ?? 0) * item.qty).toLocaleString()}
                           </span>
                         </div>
                       ))}
@@ -384,7 +384,7 @@ export default function Checkout() {
                 <div key={item.product.id} className="mb-2">
                   <div className="d-flex justify-content-between">
                     <small>{item.product.name}</small>
-                    <small>KES {item.product.price * item.qty}</small>
+                    <small>KES {(item.product.price ?? 0) * item.qty}</small>
                   </div>
                   <small className="text-muted">Qty: {item.qty}</small>
                 </div>

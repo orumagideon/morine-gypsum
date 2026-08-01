@@ -54,6 +54,62 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const register = async (email, password, username = null) => {
+    try {
+      const response = await api.post("/auth/register", {
+        email,
+        password,
+        username,
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || "Registration failed",
+      };
+    }
+  };
+
+  const verifyOtp = async (email, otp) => {
+    try {
+      const response = await api.post("/auth/verify-otp", { email, otp });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || "Verification failed",
+      };
+    }
+  };
+
+  const requestPasswordReset = async (email) => {
+    try {
+      const response = await api.post("/auth/forgot-password", { email });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || "Password reset request failed",
+      };
+    }
+  };
+
+  const resetPassword = async (email, otp, newPassword) => {
+    try {
+      const response = await api.post("/auth/reset-password", {
+        email,
+        otp,
+        new_password: newPassword,
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || "Password reset failed",
+      };
+    }
+  };
+
   const logout = () => {
     // notify backend to blacklist token if present
     if (token) {
@@ -79,6 +135,10 @@ export function AuthProvider({ children }) {
     user,
     token,
     login,
+    register,
+    verifyOtp,
+    requestPasswordReset,
+    resetPassword,
     logout,
     isAuthenticated,
     isAdmin,

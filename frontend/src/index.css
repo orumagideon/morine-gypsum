@@ -131,6 +131,21 @@ body::before {
   color: var(--bg-900);
   text-shadow: none;
 }
+
+.site-header .brand-text {
+  color: #0f3d3e;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.site-header .logo:hover .brand-text {
+  color: #0b5b5d;
+}
+
+.site-header .logo .site-logo {
+  filter: drop-shadow(0 2px 6px rgba(15, 61, 62, 0.18));
+}
 .site-header .nav-link {
   /* darker nav link color on light header for contrast */
   color: rgba(15, 23, 36, 0.92) !important; /* near-black/blue */
@@ -329,9 +344,51 @@ main {
 }
 .home-hero-cta { margin: 0; font-weight: 600; }
 
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.landing-section {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.section-heading {
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  margin-bottom: 0.35rem;
+}
+
+.section-heading p {
+  margin: 0;
+  color: rgba(15, 23, 36, 0.72);
+}
+
+.reviews-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.review-card,
+.review-form,
+.empty-review-card {
+  border-radius: 18px;
+}
+
+.review-card {
+  border: 1px solid rgba(15, 23, 36, 0.08);
+}
+
 @media (max-width: 768px) {
   .home-hero-img { max-height: 300px; }
   .home-hero-title { font-size: 1.5rem; }
+  .home-hero-actions { flex-direction: column; }
 }
 
 /* Header / nav icon styles */
@@ -409,4 +466,76 @@ main {
 
 @media (min-width: 769px) {
   .mobile-drawer { display: none !important; }
+}
+
+.auth-page {
+  width: min(1180px, calc(100% - 1rem));
+}
+
+.auth-panel {
+  border-radius: 22px;
+}
+
+.auth-title--compact {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.auth-copy--compact {
+  margin-top: 0.35rem;
+  max-width: none;
+}
+
+.auth-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.auth-tabs .btn {
+  border-radius: 999px;
+  padding-inline: 1rem;
+}
+
+@media (max-width: 991px) {
+  .auth-page {
+    width: min(100%, calc(100% - 1rem));
+  }
+
+  .auth-panel {
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container:not(.navbar .container):not(.navbar .container-fluid),
+  .container-fluid:not(.navbar .container-fluid),
+  .content-wrap {
+    padding: 16px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    border-radius: 16px;
+  }
+
+  .auth-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .auth-tabs .btn {
+    width: 100%;
+  }
+
+  .table-responsive {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero {
+    padding: 0 12px;
+  }
 }
