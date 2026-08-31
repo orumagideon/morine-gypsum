@@ -97,14 +97,13 @@ export default function ProductForm({ product, categories = [], onSuccess, onCan
         </div>
       </div>
       <div className="mb-3">
-        <label className="form-label">Description *</label>
+        <label className="form-label">Description</label>
         <textarea
           className="form-control"
           placeholder="Product Description"
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
           rows="3"
-          required
         />
       </div>
       <div className="row">

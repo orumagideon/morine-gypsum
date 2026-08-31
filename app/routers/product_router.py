@@ -1,5 +1,6 @@
 # app/routers/product_router.py
 import os
+from typing import Optional
 from fastapi import (
     APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 )
@@ -21,7 +22,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 def create_product(
     name: str = Form(...),
-    description: str = Form(None),
+    description: Optional[str] = Form(None),
     price: float = Form(None),
     stock_quantity: int = Form(...),
     category_id: int = Form(None),
@@ -131,7 +132,7 @@ def get_product(product_id: int, session: Session = Depends(get_session)):
 def update_product(
     product_id: int,
     name: str = Form(None),
-    description: str = Form(None),
+    description: Optional[str] = Form(None),
     price: float = Form(None),
     stock_quantity: int = Form(None),
     category_id: str = Form(None),  # Changed to str to handle empty strings
