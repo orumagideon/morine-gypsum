@@ -1,7 +1,13 @@
 import axios from "axios";
 
 // Use environment variable if available, otherwise default to local FastAPI server
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+// Accepts VITE_API_BASE_URL or VITE_API_URL (e.g. "/api" behind Nginx).
+// Trailing slashes are stripped so requests like "/products/" never become "/api//products/".
+const rawBaseURL =
+  import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "/api");
+const baseURL = rawBaseURL.replace(/\/+$/, "");
 
 // Create an axios instance with common settings
 const api = axios.create({
