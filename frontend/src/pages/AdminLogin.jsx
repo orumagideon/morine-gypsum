@@ -1,12 +1,11 @@
 import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { defaultSettings } from "../config/settings";
 
 export default function AdminLogin() {
-  const [loginEmail, setLoginEmail] = useState(defaultSettings.admin.email);
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [resetEmail, setResetEmail] = useState(defaultSettings.admin.email);
+  const [resetEmail, setResetEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [error, setError] = useState("");
@@ -42,7 +41,7 @@ export default function AdminLogin() {
     e.preventDefault();
     clearMessages();
     setLoading(true);
-    const emailToUse = resetEmail || loginEmail || defaultSettings.admin.email;
+    const emailToUse = resetEmail || loginEmail;
     setResetEmail(emailToUse);
 
     const result = await requestPasswordReset(emailToUse);
@@ -107,7 +106,7 @@ export default function AdminLogin() {
               <form onSubmit={handleLogin} className="mb-4">
                 <div className="mb-3">
                   <label htmlFor="loginEmail" className="form-label">Email</label>
-                  <input id="loginEmail" type="email" className="form-control" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required autoFocus />
+                  <input id="loginEmail" type="email" className="form-control" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="name@example.com" autoComplete="email" required autoFocus />
                 </div>
                 <div className="mb-3">
                   <label htmlFor="loginPassword" className="form-label">Password</label>
@@ -123,7 +122,7 @@ export default function AdminLogin() {
                   type="button"
                   className="btn btn-outline-dark w-100"
                   onClick={() => {
-                    setResetEmail(loginEmail || defaultSettings.admin.email);
+                    setResetEmail(loginEmail);
                     setShowResetForm(true);
                     setResetStep("request");
                     clearMessages();
@@ -166,7 +165,7 @@ export default function AdminLogin() {
                       setDevResetCode("");
                       setResetCode("");
                       setResetPasswordValue("");
-                      setResetEmail(defaultSettings.admin.email);
+                      setResetEmail("");
                     }}
                   >
                     Back to login
