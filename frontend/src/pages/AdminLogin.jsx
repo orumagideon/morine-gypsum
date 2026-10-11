@@ -106,7 +106,7 @@ export default function AdminLogin() {
               <form onSubmit={handleLogin} className="mb-4">
                 <div className="mb-3">
                   <label htmlFor="loginEmail" className="form-label">Email</label>
-                  <input id="loginEmail" type="email" className="form-control" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="name@example.com" autoComplete="email" required autoFocus />
+                  <input id="loginEmail" type="email" className="form-control" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoComplete="email" required autoFocus />
                 </div>
                 <div className="mb-3">
                   <label htmlFor="loginPassword" className="form-label">Password</label>
