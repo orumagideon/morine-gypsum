@@ -83,10 +83,10 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="container auth-page py-4">
+    <div className="auth-page py-4">
       <div className="row justify-content-center">
         <div className="col-12 col-lg-8 col-xl-6">
-          <div className="card shadow-lg border-0 auth-panel">
+          <div className="card shadow-sm border-0 auth-panel">
             <div className="card-body p-4 p-md-5">
               <div className="mb-4">
                 <h1 className="auth-title auth-title--compact">Admin Login</h1>
@@ -180,4 +180,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-

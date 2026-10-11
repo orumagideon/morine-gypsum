@@ -2,18 +2,43 @@ import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 
+const navigationItems = [
+  { label: "Home", to: "/", icon: "/home.svg", alt: "Home" },
+  { label: "Store", to: "/#store", icon: "/building-store.svg", alt: "Store" },
+  { label: "My Orders", to: "/orders", icon: "/My%20orders.svg", alt: "Orders" },
+  { label: "Cart", to: "/cart", icon: "/shopping-cart-check.svg", alt: "Cart" },
+  { label: "Admin", to: "/admin/dashboard", icon: "/admin%20settings.svg", alt: "Admin" },
+];
+
 export default function Header() {
   const { getItemCount } = useContext(CartContext);
   const cartCount = getItemCount();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const toggleDrawer = () => setDrawerOpen((s) => !s);
+  const closeDrawer = () => setDrawerOpen(false);
+
+  const renderLinks = (mobile = false) =>
+    navigationItems.map(({ label, to, icon, alt }) => (
+      <li className="nav-item" key={label}>
+        <Link
+          className="nav-link d-flex align-items-center"
+          to={to}
+          onClick={mobile ? closeDrawer : undefined}
+        >
+          <img src={icon} alt={alt} className="nav-icon me-2" />
+          {label}
+          {label === "Cart" && cartCount > 0 && (
+            <span className="badge rounded-pill bg-danger ms-2">{cartCount}</span>
+          )}
+        </Link>
+      </li>
+    ));
 
   return (
     <header className="site-header">
       <nav className="navbar navbar-expand-lg navbar-light px-3">
         <div className="container-fluid">
-          <Link className="navbar-brand logo d-flex align-items-center" to="/">
+          <Link className="navbar-brand logo d-flex align-items-center" to="/" onClick={closeDrawer}>
             <img src="/logo.svg" alt="Morine Gypsum" className="site-logo me-2" />
             <span className="brand-text">Morine Gypsum</span>
           </Link>
@@ -21,89 +46,35 @@ export default function Header() {
           <button
             className="navbar-toggler"
             type="button"
-            aria-label="Toggle navigation"
-            onClick={toggleDrawer}
+            aria-label={drawerOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={drawerOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setDrawerOpen((open) => !open)}
           >
-            <span className="navbar-toggler-icon"></span>
+            <span className="navbar-toggler-icon" />
           </button>
 
-          <div className={`collapse navbar-collapse ${drawerOpen ? "open" : ""}`} id="navbarNav">
-            <ul className="navbar-nav me-auto">
-              <li className="nav-item">
-                <Link className="nav-link d-flex align-items-center" to="/">
-                  <img src="/home.svg" alt="Home" className="nav-icon me-2" />
-                  Home
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link d-flex align-items-center" to="/#store">
-                  <img src="/building-store.svg" alt="Store" className="nav-icon me-2" />
-                  Store
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link d-flex align-items-center" to="/orders">
-                  <img src="/My%20orders.svg" alt="Orders" className="nav-icon me-2" />
-                  My Orders
-                </Link>
-              </li>
-            </ul>
-
-            <ul className="navbar-nav">
-              <li className="nav-item">
-                <Link className="nav-link position-relative d-flex align-items-center" to="/cart">
-                  <img src="/shopping-cart-check.svg" alt="Cart" className="nav-icon me-2" />
-                  Cart
-                  {cartCount > 0 && (
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                      {cartCount}
-                    </span>
-                  )}
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link d-flex align-items-center" to="/admin/dashboard">
-                  <img src="/admin%20settings.svg" alt="Admin" className="nav-icon me-2" />
-                  Admin
-                </Link>
-              </li>
-            </ul>
-          </div>
-          {/* Mobile slide-out drawer overlay */}
-          <div className={`mobile-drawer ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)}>
-            <div className="mobile-drawer-panel" onClick={(e) => e.stopPropagation()}>
-              <button className="btn-close" aria-label="Close" onClick={() => setDrawerOpen(false)}></button>
-              <ul className="navbar-nav">
-                <li className="nav-item">
-                  <Link className="nav-link" to="/" onClick={() => setDrawerOpen(false)}>
-                    Home
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/#store" onClick={() => setDrawerOpen(false)}>
-                    Store
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/orders" onClick={() => setDrawerOpen(false)}>
-                    My Orders
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/cart" onClick={() => setDrawerOpen(false)}>
-                    Cart
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/admin/dashboard" onClick={() => setDrawerOpen(false)}>
-                    Admin
-                  </Link>
-                </li>
-              </ul>
-            </div>
+          <div className="collapse navbar-collapse">
+            <ul className="navbar-nav me-auto">{renderLinks()}</ul>
           </div>
         </div>
       </nav>
+
+      {drawerOpen && (
+        <div
+          className="mobile-drawer"
+          id="mobile-navigation"
+          onClick={closeDrawer}
+        >
+          <nav
+            className="mobile-drawer-panel"
+            aria-label="Mobile navigation"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ul className="navbar-nav">{renderLinks(true)}</ul>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

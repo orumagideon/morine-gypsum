@@ -81,32 +81,32 @@ export default function AdminDashboard() {
       </div>
 
       <div className="row mb-4">
-        <div className="col-md-3 mb-3">
-          <div className="card bg-primary text-white">
+        <div className="col-6 col-xl-3 mb-3">
+          <div className="card admin-stat-card admin-stat-card--products">
             <div className="card-body">
               <h5 className="card-title">Total Products</h5>
               <h2>{stats.totalProducts}</h2>
             </div>
           </div>
         </div>
-        <div className="col-md-3 mb-3">
-          <div className="card bg-success text-white">
+        <div className="col-6 col-xl-3 mb-3">
+          <div className="card admin-stat-card admin-stat-card--orders">
             <div className="card-body">
               <h5 className="card-title">Total Orders</h5>
               <h2>{stats.totalOrders}</h2>
             </div>
           </div>
         </div>
-        <div className="col-md-3 mb-3">
-          <div className="card bg-info text-white">
+        <div className="col-6 col-xl-3 mb-3">
+          <div className="card admin-stat-card admin-stat-card--revenue">
             <div className="card-body">
               <h5 className="card-title">Total Revenue</h5>
               <h2>KES {stats.totalRevenue.toLocaleString()}</h2>
             </div>
           </div>
         </div>
-        <div className="col-md-3 mb-3">
-          <div className="card bg-warning text-white">
+        <div className="col-6 col-xl-3 mb-3">
+          <div className="card admin-stat-card admin-stat-card--stock">
             <div className="card-body">
               <h5 className="card-title">Low Stock Items</h5>
               <h2>{stats.lowStockItems}</h2>
@@ -154,4 +154,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
